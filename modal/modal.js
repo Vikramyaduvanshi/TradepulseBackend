@@ -93,3 +93,5 @@ let Trade= mongoose.model("Trade", tradeSchema);
 let News= mongoose.model("News", newsSchema);
 
 module.exports= {Trade, News,DomesticNews, Usermodel ,Calender,Finalanalysedforex};
+
+

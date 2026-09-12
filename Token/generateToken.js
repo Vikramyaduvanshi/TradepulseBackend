@@ -5,7 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET
 const AES_SECRET = process.env.AES_SECRET
 
 
-function generateSecureToken(user) {
+function generateSecureToken(user,type) {
 
     // =========================
     // ORIGINAL DATA
@@ -35,7 +35,25 @@ function generateSecureToken(user) {
     // CREATE JWT
     // =========================
 
-    const token = jwt.sign(
+    let token;
+
+
+    if(type=="accesstoken"){
+        token = jwt.sign(
+
+        {
+            data: encryptedPayload
+        },
+
+        JWT_SECRET,
+
+        {
+            expiresIn: "15m"
+        }
+    )
+    }
+    if(type=="refreshtoken"){
+        token = jwt.sign(
 
         {
             data: encryptedPayload
@@ -47,6 +65,7 @@ function generateSecureToken(user) {
             expiresIn: "7d"
         }
     )
+    }
 
     return token
 }

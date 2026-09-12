@@ -1,7 +1,7 @@
 const axios = require("axios");
 
 const api_key = process.env.FINNHUB_KEY;
-console.log(api_key)
+// console.log(api_key)
 const keywords = [
   "fed", "fomc", "ecb", "boj", "boe", "rba", "rbi", "powell", "lagarde","intervenes",
   "inflation", "cpi", "ppi", "interest", "rate", "hawkish", "dovish",
@@ -133,7 +133,7 @@ async function MAIN() {
     news: cleanedNews.slice(0, 20)
   };
 
-  console.log(JSON.stringify(finalOutput, null, 2));
+  // console.log(JSON.stringify(finalOutput, null, 2));
 }
 
-MAIN();
+// MAIN();

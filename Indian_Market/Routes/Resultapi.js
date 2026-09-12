@@ -1,4 +1,5 @@
 let express= require("express")
+const { GetAllResult } = require("./result")
 
 let IndiaResultrouter = express.Router()
 

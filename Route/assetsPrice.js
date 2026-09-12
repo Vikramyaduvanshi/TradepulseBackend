@@ -1,7 +1,7 @@
 const axios = require("axios");
 
 const getPrice = async (symbol) => {
-  console.log(symbol, "symbol in getprice");
+  // console.log(symbol, "symbol in getprice");
 
   try {
 
@@ -17,7 +17,7 @@ const getPrice = async (symbol) => {
 
     // ✅ success check
     if (res.data.price) {
-      console.log("Twelve Data:", res.data.price);
+      // console.log("Twelve Data:", res.data.price);
       return parseFloat(res.data.price);
     }
 

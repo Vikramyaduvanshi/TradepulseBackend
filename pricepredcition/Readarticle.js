@@ -15,7 +15,7 @@ async function readArticle(googleUrl) {
         // Real user ki tarah behave karne ke liye User-Agent
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-        console.log("Navigating to Google News Link...");
+        // console.log("Navigating to Google News Link...");
         
         // Step 2: Google News link par jana (Ye automatically redirect follow karega)
         // Wait until 'networkidle2' matlab jab page load hona band ho jaye
@@ -23,7 +23,7 @@ async function readArticle(googleUrl) {
 
         // Step 3: Get the Final URL after all redirects
         const finalUrl = page.url();
-        console.log("Final Destination URL:", finalUrl);
+        // console.log("Final Destination URL:", finalUrl);
 
         // Step 4: Page ka HTML nikalna
         const html = await page.content();
@@ -72,4 +72,4 @@ async function main() {
     console.log(result);
 }
 
-main();
+// main();

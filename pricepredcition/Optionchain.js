@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 
 async function getOptionChain(symbol) {
-    console.log(`🚀 Starting Stealth Browser...`);
+    // console.log(`🚀 Starting Stealth Browser...`);
     
     const browser = await puppeteer.launch({ 
         headless: "new", 
@@ -12,13 +12,13 @@ async function getOptionChain(symbol) {
         const page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
-        console.log(`🌐 Step 1: Visiting NSE Home for fresh cookies...`);
+        // console.log(`🌐 Step 1: Visiting NSE Home for fresh cookies...`);
         await page.goto('https://www.nseindia.com', { waitUntil: 'networkidle2' });
 
         // Thoda extra wait taaki cookies stabilize ho jayein
         await new Promise(r => setTimeout(r, 3000));
 
-        console.log(`📡 Step 2: Fetching Data for ${symbol}...`);
+        // console.log(`📡 Step 2: Fetching Data for ${symbol}...`);
         
         // Backup URL strategy
         const urls = [
@@ -29,7 +29,7 @@ async function getOptionChain(symbol) {
         let data = null;
         for (let url of urls) {
             try {
-                console.log(`🔗 Trying URL: ${url}`);
+                // console.log(`🔗 Trying URL: ${url}`);
                 const response = await page.goto(url, { waitUntil: 'networkidle2' });
                 data = await response.json();
                 
@@ -57,13 +57,13 @@ async function getOptionChain(symbol) {
 
             const pcr = (totalPE / totalCE).toFixed(2);
 
-            console.log(`\n✅ --- REAL-TIME DATA --- ✅`);
-            console.log(`📊 Symbol    : ${symbol}`);
-            console.log(`💰 Spot Price : ${spotPrice}`);
-            console.log(`📈 Total CE OI: ${totalCE}`);
-            console.log(`📈 Total PE OI: ${totalPE}`);
-            console.log(`🔥 PCR Ratio  : ${pcr}`);
-            console.log(`--------------------------\n`);
+            // console.log(`\n✅ --- REAL-TIME DATA --- ✅`);
+            // console.log(`📊 Symbol    : ${symbol}`);
+            // console.log(`💰 Spot Price : ${spotPrice}`);
+            // console.log(`📈 Total CE OI: ${totalCE}`);
+            // console.log(`📈 Total PE OI: ${totalPE}`);
+            // console.log(`🔥 PCR Ratio  : ${pcr}`);
+            // console.log(`--------------------------\n`);
 
         } else {
             console.log("❌ Error: NSE ne data dene se mana kar diya. Market closed ya API maintenance pe hai.");

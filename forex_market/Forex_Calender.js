@@ -165,7 +165,7 @@ if(v.date==current_time.date) return v
 })
 
     // console.log(operations);
-    console.log(today_calender);
+    // console.log(today_calender);
 
 
 return today_calender

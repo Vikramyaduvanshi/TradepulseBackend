@@ -75,7 +75,7 @@ async function fetchGNews() {
       console.warn(`[GNews] ❌ "${q.slice(0, 35)}…" — ${err.message}`);
     }
   }
-  console.log(`[GNews]  ✅ ${articles.length} articles`);
+
   return articles;
 }
 
@@ -239,7 +239,7 @@ async function fetchRSS() {
           source:      feed.name,
           fetchedFrom: "rss",
         }));
-        console.log(`[RSS] ✅ ${feed.name}: ${items.length} items`);
+       
         return items;
       } catch (err) {
         console.warn(`[RSS] ❌ ${feed.name}: ${err.message.slice(0, 60)}`);
@@ -252,7 +252,7 @@ async function fetchRSS() {
     .filter((r) => r.status === "fulfilled")
     .flatMap((r) => r.value);
 
-  console.log(`[RSS]  Total: ${articles.length} articles from ${RSS_FEEDS.length} feeds`);
+  // console.log(`[RSS]  Total: ${articles.length} articles from ${RSS_FEEDS.length} feeds`);
   return articles;
 }
 
@@ -354,7 +354,7 @@ function mergeAndClean(all) {
 // ─────────────────────────────────────────────────────────────
 
 async function Fetchcomineddata() {
-  console.log("\n📡 Fetching from all sources…\n");
+  // console.log("\n📡 Fetching from all sources…\n");
   const t0 = Date.now();
 
   // Sab parallel chalao
@@ -372,14 +372,14 @@ async function Fetchcomineddata() {
 
   const clean = mergeAndClean(combined);
 
-  console.log(`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ FETCH COMPLETE  (${((Date.now() - t0) / 1000).toFixed(1)}s)
-   Raw articles  : ${combined.length}
-   After dedup   : ${clean.length}
-   Sources       : GNews API | ${RSS_FEEDS.length} RSS feeds | ${YAHOO_SYMBOLS.length} Yahoo symbols
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`);
+//   console.log(`
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅ FETCH COMPLETE  (${((Date.now() - t0) / 1000).toFixed(1)}s)
+//    Raw articles  : ${combined.length}
+//    After dedup   : ${clean.length}
+//    Sources       : GNews API | ${RSS_FEEDS.length} RSS feeds | ${YAHOO_SYMBOLS.length} Yahoo symbols
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// `);
 
   return clean;
 }

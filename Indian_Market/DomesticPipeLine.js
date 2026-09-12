@@ -20,7 +20,7 @@ async function runDomesticPipeline() {
     });
 
     if (exists) {
-      console.log("Already exists, skip:", sm_isin);
+      // console.log("Already exists, skip:", sm_isin);
       continue;
     }
 
@@ -31,7 +31,7 @@ async function runDomesticPipeline() {
     // 4️⃣ Save in DB
     await DomesticNews.create(finalData);
 
-    console.log("Saved:", sm_isin);
+    // console.log("Saved:", sm_isin);
   }
 }
 

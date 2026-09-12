@@ -7,7 +7,7 @@ const { News, Trade } = require("../modal/modal");
 newsrouter.post("/post_news", async (req,res)=>{
 try{
     let {title, description,image}= req.body;
-console.log(req.body)
+// console.log(req.body)
 let news1=  new News(
     {
         ...req.body,
@@ -45,7 +45,7 @@ res.json({success:false, message:e.message})
 newsrouter.get("/get_news", async (req,res)=>{
 try{
    let {searchword, page=1, limit=20}= req.query
-console.log(searchword)
+// console.log(searchword)
    let searchobj={};
    if(searchword && searchword.trim() !== ""){
     searchobj.title= {$regex:searchword, $options:"i"}

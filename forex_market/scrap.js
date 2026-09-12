@@ -57,7 +57,7 @@ async function getFullArticle(url) {
 async function MAIN(){
 let res=await  getFullArticle("https://www.bloomberg.com/news/articles/2026-05-21/asian-stocks-to-rise-on-optimism-over-iran-talks-markets-wrap")
 
-console.log(res)
+// console.log(res)
 }
 
-MAIN()
+// MAIN()

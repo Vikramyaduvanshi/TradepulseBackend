@@ -338,7 +338,7 @@ let storedNews = [];
 // ⏱️ CRON JOB
 // ===============================
 cron.schedule("*/30 * * * *", async () => {
-  console.log("Running cron at:", new Date().toLocaleTimeString());
+  // console.log("Running cron at:", new Date().toLocaleTimeString());
 
   const assets = new Set();
 
@@ -389,7 +389,7 @@ cron.schedule("*/30 * * * *", async () => {
 
 //crone for domestic
 cron.schedule("*/30 * * * *", async () => {
-  console.log("⏰ Cron running every 1 minute...");
+  // console.log("⏰ Cron running every 1 minute...");
 
   try {
     await runDomesticPipeline();
@@ -411,7 +411,7 @@ function scheduleNextJob() {
   }
 
   eventJob = cron.schedule(next_shedule.time, async () => {
-    console.log("⏰ Dynamic Event Triggered");
+    // console.log("⏰ Dynamic Event Triggered");
 
     let res = await CalenderHandleWithUpsert();
 
@@ -426,7 +426,7 @@ function scheduleNextJob() {
         res[next_shedule.idx].time
       );
 
-      console.log("Next Event:", next_shedule.time);
+      // console.log("Next Event:", next_shedule.time);
 
       // next cron create
     
@@ -438,7 +438,7 @@ function scheduleNextJob() {
 
 cron.schedule("0 0 * * *", async () => {
 try{
-    console.log("⏰ Daily Calendar Refresh");
+    // console.log("⏰ Daily Calendar Refresh");
 // isme mene daily caleneder set krna and new cron update ka logic likhna hai
   let res = await CalenderHandleWithUpsert();
 let i=0
@@ -452,7 +452,7 @@ i++
   if (res.length) {
     next_shedule.time = convertToCron(res[i].time);
 
-    console.log("First Event:", next_shedule.time);
+    // console.log("First Event:", next_shedule.time);
 
     scheduleNextJob();
   }
@@ -464,7 +464,7 @@ console.log(e.message)
 
 
 cron.schedule("0 */2 * * *", async () => {
-  console.log("⏰ Cron running every 1 minute...");
+  // console.log("⏰ Cron running every 1 minute...");
 
   try {
     await fULL_forex_analyse();

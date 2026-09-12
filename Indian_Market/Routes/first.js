@@ -79,12 +79,14 @@ return res.json({"message":e.message})
 
 Indiarouter.get("/get_ongoing_ipo" , async (req,res)=>{
 try{
-    let {page=1,pageSize=10}=req.query
+  let {page=1,pageSize=10}=req.query
 
   let data= await GetOngoingIPOs(page,pageSize)
+
   return res.json({"message":"ongoing IPO data fetched successfully", data})
 
 }catch(e){
+
 return res.json({"message":e.message})
 
 }

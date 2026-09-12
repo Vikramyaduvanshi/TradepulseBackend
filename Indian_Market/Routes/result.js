@@ -38,7 +38,7 @@ return res1
 
 
 
-
+module.exports={GetAllResult}
 
 
 

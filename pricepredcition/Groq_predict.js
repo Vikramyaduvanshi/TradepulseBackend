@@ -200,10 +200,10 @@ async function getStockAIResult({
       sector_impact: sector_impact || {},
     };
 
-    console.log(
-      "FINAL DATA",
-      JSON.stringify(rawData, null, 2)
-    );
+    // console.log(
+    //   "FINAL DATA",
+    //   JSON.stringify(rawData, null, 2)
+    // );
 
     // ======================================
     // PROMPT
@@ -625,7 +625,7 @@ STRICT JSON ONLY
     // ======================================
     const raw = await callAI(prompt);
 
-    console.log("RAW AI:", raw);
+    // console.log("RAW AI:", raw);
 
     // ======================================
     // CLEAN RESULT

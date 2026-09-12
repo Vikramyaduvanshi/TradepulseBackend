@@ -19,9 +19,9 @@ function extractImportantText(fullText) {
 
 
 async function ExtractTotext(url) {
-  console.log(url)
+  // console.log(url)
   try {
-    console.log("extract function running");
+    // console.log("extract function running");
 
     const response = await axios.get(url, {
       responseType: "arraybuffer",
@@ -33,14 +33,14 @@ async function ExtractTotext(url) {
       },
       timeout: 15000,
     });
-console.log("pdf",response.data)
-    console.log("after axios");
+// console.log("pdf",response.data)
+//     console.log("after axios");
 
  let parser=new PDFParse({data:response.data})
      const data = await parser.getText(); 
 
-    console.log("text extracted");
-console.log(data.text)
+//     console.log("text extracted");
+// console.log(data.text)
 let finaltext=await extractImportantText(data.text)
 
     return finaltext;

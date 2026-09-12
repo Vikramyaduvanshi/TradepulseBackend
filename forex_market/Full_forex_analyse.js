@@ -75,23 +75,23 @@ async function fULL_forex_analyse(){
 }
 
 let next3dayscalender= await fetchcalenderdata()
-console.log("\n")
-console.log(next3dayscalender, "next 3 days caleneder data");
+// console.log("\n")
+// console.log(next3dayscalender, "next 3 days caleneder data");
 
 let forexfactory_news = await Cleanedforexfactorydata()
-console.log(forexfactory_news , "forexfactory_news news previous 3 hours");
+// console.log(forexfactory_news , "forexfactory_news news previous 3 hours");
 
 // let gnews= (await Cleangnewsdata()).slice(0,10)
 // console.log(gnews , "gnews all all 24 hours ",gnews.length);
 
 let gnews= await gnewsdatafromdb()
-console.log(gnews , "data from db",gnews.length,"gnews data from db");
+// console.log(gnews , "data from db",gnews.length,"gnews data from db");
 
 let technical=pairstechincaldata
 // console.log("pairs array me sabhi pairs ka technical data from yahoo")
 // yha pr ai ko data dunga ye and final har pair ke liye and full market analyse krke db me store karenege 
-let previousanalysed= await Finalanalysedforex.find()
-console.log("previous data analysed", previousanalysed)
+let previousanalysed = await Finalanalysedforex.findOne()
+// console.log("previous data analysed", previousanalysed)
 
 const prompt = `
 CURRENT TECHNICAL DATA
@@ -119,10 +119,14 @@ Analyze complete forex market and return JSON.
 
 const aiAnalysis = await forexMarketAnalysis(prompt);
 
-console.log(pairstechincaldata.length, "pairs technical data");
-console.log(aiAnalysis, "final ai analyses data");
-let newanalysed= Finalanalysedforex({analyseddata:aiAnalysis})
-await newanalysed.save()
+// console.log(pairstechincaldata.length, "pairs technical data");
+// console.log(aiAnalysis, "final ai analyses data");
+const updated = await Finalanalysedforex.findOneAndUpdate(
+  {},
+  { analyseddata: aiAnalysis },
+  { new: true, upsert: true }
+);
+
 }
 
 

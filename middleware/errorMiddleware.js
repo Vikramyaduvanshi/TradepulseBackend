@@ -11,13 +11,13 @@ const errorMiddleware = (err, req, res, next) => {
     // =========================
     // LOG FULL ERROR
     // =========================
-    console.log("\n===== ERROR START =====")
-    console.log("Time:", new Date().toLocaleString())
-    console.log("Route:", req.originalUrl)
-    console.log("Method:", req.method)
-    console.log("Message:", err.message)
-    console.log("Stack:", err.stack)
-    console.log("===== ERROR END =====\n")
+    // console.log("\n===== ERROR START =====")
+    // console.log("Time:", new Date().toLocaleString())
+    // console.log("Route:", req.originalUrl)
+    // console.log("Method:", req.method)
+    // console.log("Message:", err.message)
+    // console.log("Stack:", err.stack)
+    // console.log("===== ERROR END =====\n")
 
 
     // =========================

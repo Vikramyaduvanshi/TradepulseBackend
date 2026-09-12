@@ -13,7 +13,7 @@ payload = verifySecureToken(access_token)
 }
 catch(e){
 if(e.message == "jwt expired"){
-    console.log("access token has expired")
+    // console.log("access token has expired")
 }else{
     return res.json({message:"invalid access token", success:false})
 }
@@ -28,7 +28,7 @@ if(!refresh_token){
 try {
 let refreshpayload= verifySecureToken(refresh_token)
 let new_access_token= generateSecureToken(refreshpayload)
-    res.cookie("accesstoken", newAccessToken, {
+    res.cookie("accesstoken", new_access_token, {
               httpOnly:true,
               secure:true,
               sameSite:"none",

@@ -4,7 +4,7 @@ let jwt = require("jsonwebtoken")
 
 const { Usermodel } = require("../modal/modal")
 const asyncHandler = require("../utils/asyncHandler")
-const { generateSecureToken } = require("../Token/generateToken")
+const { generateSecureToken, verifySecureToken } = require("../Token/generateToken")
 
 let Userrouter = express.Router()
 
@@ -14,10 +14,10 @@ let Userrouter = express.Router()
 
 Userrouter.post("/register",asyncHandler(async (req, res) => {
 
-        let { name, email, password, number } = req.body
+        let { name, email, password, mobile } = req.body
 
 
-        if (!name || !email || !password || !number) {
+        if (!name || !email || !password || !mobile) {
 
             let error = new Error("All fields are required")
             error.statusCode = 400
@@ -41,10 +41,8 @@ Userrouter.post("/register",asyncHandler(async (req, res) => {
 
 
         let newUser = await Usermodel.create({
-            name,
-            email,
-            password: hashPassword,
-            number
+           ...req.body,
+           password:hashPassword
         })
 
 
@@ -71,7 +69,8 @@ Userrouter.post("/login",asyncHandler(async (req, res) => {
 
         let { email, password } = req.body
         const isMobile = req.headers["x-platform"] === "mobile"
-console.log(isMobile,email,password)
+
+// console.log(isMobile,email,password)
 
         if (!email || !password) {
 
@@ -83,7 +82,7 @@ console.log(isMobile,email,password)
 
 
         let user = await Usermodel.findOne({ email })
-
+// console.log("user",user)
         if (!user) {
 
             let error = new Error("Invalid credentials")
@@ -94,8 +93,9 @@ console.log(isMobile,email,password)
 
 
         let isMatch = await bcrypt.compare(password, user.password)
-
+// console.log("inside is match",isMatch)
         if (!isMatch) {
+
 
             let error = new Error("Invalid credentials")
             error.statusCode = 401
@@ -104,8 +104,8 @@ console.log(isMobile,email,password)
         }
 
 
-        let accesstoken = generateSecureToken(user)
-        let refreshtoken= generateSecureToken(user)
+        let accesstoken = generateSecureToken(user,"accesstoken")
+        let refreshtoken= generateSecureToken(user,"refreshtoken")
 
        
 
@@ -115,7 +115,8 @@ if(isMobile){
    return res.json({
       success:true,
       accesstoken,
-      refreshtoken
+      refreshtoken,
+      userdata:{...user,password:null}
    })
 }
 
@@ -153,6 +154,102 @@ res.cookie("refreshtoken", refreshtoken, {
     })
 )
 
+
+
+Userrouter.get("/me",asyncHandler(async (req, res) => {
+
+        const token =
+            req.headers.authorization?.split(" ")[1]
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Access token required"
+            })
+        }
+
+        try {
+
+            const userData =
+                verifySecureToken(token)
+
+            const user =
+                await Usermodel
+                    .findById(userData.id)
+                    .select("-password")
+
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: "User not found"
+                })
+            }
+
+            // console.log("route hit me",token)
+            res.json({
+                success: true,
+                userdata:{...user,password:null}
+            })
+
+        } catch (error) {
+
+            return res.status(401).json({
+                success: false,
+                message: "Access token expired or invalid"
+            })
+        }
+    })
+)
+
+
+
+Userrouter.post("/refresh", asyncHandler(async (req, res) => {
+
+        const { refreshtoken } = req.body
+
+        if (!refreshtoken) {
+            return res.status(401).json({
+                success: false,
+                message: "Refresh token required"
+            })
+        }
+
+        try {
+
+            const userData =
+                verifySecureToken(refreshtoken)
+
+            const user =
+                await Usermodel.findById(userData.id)
+
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: "User not found"
+                })
+            }
+
+            const accesstoken =
+                generateSecureToken(
+                    user,
+                    "accesstoken"
+                )
+
+            res.json({
+                success: true,
+                accesstoken,
+                userdata:{...user,password:null}
+            })
+
+        } catch (error) {
+
+            return res.status(401).json({
+                success: false,
+                message: "Refresh token expired or invalid"
+            })
+        }
+    })
+)
 
 
 module.exports = Userrouter
