@@ -1,4 +1,9 @@
 {
+"scripts": {
+    "postinstall": "npx puppeteer browsers install chrome && npx playwright install --with-deps chromium",
+    "start": "node server.js"
+  },
+
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
     "axios": "^1.16.0",
