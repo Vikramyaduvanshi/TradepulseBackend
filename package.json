@@ -1,6 +1,6 @@
 {
-"scripts": {
-    "postinstall": "npx puppeteer browsers install chrome && npx playwright install --with-deps chromium",
+ "scripts": {
+    "postinstall": "npx puppeteer browsers install chrome && npx playwright install chromium",
     "start": "node server.js"
   },
 
