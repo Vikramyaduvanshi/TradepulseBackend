@@ -16,7 +16,7 @@ io.use(socketmiddleware)
 
         // console.log(socket.user)
         // console.log("all connected users",io.sockets.sockets)
-        let existuser= await Usermodel.findOne({email:socket.user.email})
+        // let existuser= await Usermodel.findOne({email:socket.user.email})
 
         // STORE IN REDIS
         // await redisClient.set(`${existuser._id}`, socket.id)
