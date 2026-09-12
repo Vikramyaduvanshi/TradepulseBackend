@@ -70,7 +70,6 @@ Userrouter.post("/login",asyncHandler(async (req, res) => {
         let { email, password } = req.body
         const isMobile = req.headers["x-platform"] === "mobile"
 
-// console.log(isMobile,email,password)
 
         if (!email || !password) {
 
@@ -82,7 +81,7 @@ Userrouter.post("/login",asyncHandler(async (req, res) => {
 
 
         let user = await Usermodel.findOne({ email })
-// console.log("user",user)
+
         if (!user) {
 
             let error = new Error("Invalid credentials")
@@ -93,7 +92,7 @@ Userrouter.post("/login",asyncHandler(async (req, res) => {
 
 
         let isMatch = await bcrypt.compare(password, user.password)
-// console.log("inside is match",isMatch)
+
         if (!isMatch) {
 
 
@@ -185,7 +184,6 @@ Userrouter.get("/me",asyncHandler(async (req, res) => {
                 })
             }
 
-            // console.log("route hit me",token)
             res.json({
                 success: true,
                 userdata:{...user,password:null}
