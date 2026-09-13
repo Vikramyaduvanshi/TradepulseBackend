@@ -1,28 +1,32 @@
 const axios = require("axios");
-let express= require("express")
-// const axios = require("axios");
-let Inidamarket= express.Router()
-const puppeteer = require("puppeteer-extra");
+let express = require("express");
+let Inidamarket = express.Router();
+
+const { addExtra } = require("puppeteer-extra");
+const chromium = require("@sparticuz/chromium");
+const puppeteerCore = require("puppeteer-core");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
+const puppeteer = addExtra(puppeteerCore);
 puppeteer.use(StealthPlugin());
 
 async function Domestic() {
   const browser = await puppeteer.launch({
-    headless: true,
     args: [
+      ...chromium.args,
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
-      "--disable-http2", // 🔥 important fix
+      "--disable-http2", // important fix
     ],
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
   });
 
   const page = await browser.newPage();
 
   try {
-    // 👉 headers set karo (browser mimic)
     await page.setExtraHTTPHeaders({
       "accept-language": "en-US,en;q=0.9",
     });
@@ -31,16 +35,13 @@ async function Domestic() {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
     );
 
-    // 👉 NSE homepage
     await page.goto("https://www.nseindia.com", {
       waitUntil: "networkidle2",
-      timeout: 0,
+      timeout: 60000,
     });
 
-    // 👉 delay (important)
     await new Promise((r) => setTimeout(r, 2000));
 
-    // 👉 API call inside browser
     const data = await page.evaluate(async () => {
       const res = await fetch(
         "https://www.nseindia.com/api/corporate-announcements?index=equities"
@@ -49,11 +50,11 @@ async function Domestic() {
     });
 
     await browser.close();
-    return data;
+    return { success: true, data };
   } catch (err) {
     await browser.close();
-    console.log("Error:", err.message);
-    return [];
+    console.log("Domestic Error:", err.message);
+    return { success: false, error: err.message, data: [] };
   }
 }
 
