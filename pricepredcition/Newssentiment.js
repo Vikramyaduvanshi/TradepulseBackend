@@ -1,5 +1,4 @@
-const chromium = require("@sparticuz/chromium");
-const puppeteer = require("puppeteer-core");
+const launchBrowser = require("./browserLauncher");
 const cheerio = require("cheerio");
 const Parser = require("rss-parser");
 const parser = new Parser();
@@ -56,11 +55,7 @@ function shouldOpen(title) {
 async function readArticle(googleUrl) {
     let browser;
     try {
-        browser = await puppeteer.launch({
-            args: chromium.args,
-            executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-        });
+        browser = await launchBrowser();
         const page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         
@@ -134,7 +129,6 @@ async function Newssentiment(symbol) {
             }
         }
 
-        // CRITICAL FIX: Data return karna zaroori hai
         return {
             symbol: symbol,
             total_fresh: unique.length,
@@ -143,18 +137,9 @@ async function Newssentiment(symbol) {
         };
 
     } catch (error) {
-        console.log("Error:", error.message);
+        console.log("Newssentiment Error:", error.message);
         return { success: false, error: error.message };
     }
 }
-
-async function main() {
-    console.log("Fetching data, please wait... (Puppeteer is running)");
-    let res = await Newssentiment("bel");
-    console.log("--- FINAL RESULT ---");
-    console.log(JSON.stringify(res, null, 2));
-}
-
-// main();
 
 module.exports = Newssentiment;

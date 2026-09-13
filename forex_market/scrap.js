@@ -1,5 +1,4 @@
-const chromium = require("@sparticuz/chromium");
-const puppeteer = require("puppeteer-core");
+const launchBrowser = require("../pricepredcition/browserLauncher");
 const cheerio = require("cheerio");
 
 async function getFullArticle(url) {
@@ -8,11 +7,7 @@ async function getFullArticle(url) {
 
   try {
 
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    browser = await launchBrowser();
 
     const page = await browser.newPage();
 

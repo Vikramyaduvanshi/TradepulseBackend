@@ -1,5 +1,4 @@
-const chromium = require("@sparticuz/chromium");
-const puppeteer = require("puppeteer-core");
+const launchBrowser = require("./browserLauncher");
 const axios = require("axios");
 
 // ==========================================
@@ -9,11 +8,7 @@ const axios = require("axios");
 // "full"    => all 113 sectors cleaned
 // ==========================================
 async function getNSEData(mode = "summary") {
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
-  });
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();

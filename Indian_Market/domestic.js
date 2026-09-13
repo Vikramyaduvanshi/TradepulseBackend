@@ -2,27 +2,19 @@ const axios = require("axios");
 let express = require("express");
 let Inidamarket = express.Router();
 
-const { addExtra } = require("puppeteer-extra");
-const chromium = require("@sparticuz/chromium");
-const puppeteerCore = require("puppeteer-core");
-const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-
-const puppeteer = addExtra(puppeteerCore);
-puppeteer.use(StealthPlugin());
+const launchBrowser = require("../pricepredcition/browserLauncher");
 
 async function Domestic() {
-  const browser = await puppeteer.launch({
-    args: [
-      ...chromium.args,
+  const browser = await launchBrowser(
+    [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
       "--disable-http2", // important fix
     ],
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
-  });
+    true // useStealth = true
+  );
 
   const page = await browser.newPage();
 
@@ -59,33 +51,3 @@ async function Domestic() {
 }
 
 module.exports = Domestic;
-
-// Inidamarket.get("/getindia_news", async (req, res) => {
-//   try {
-//     let data = await Domestic();
-
-
-
-
-
-
-
-//     res.json({
-//       success: true,
-//       count: data.length,
-//       data: data,
-//     });
-//   } catch (err) {
-//     res.status(500).json({
-//       success: false,
-//       message: err.message,
-//     });
-//   }
-// });
-
-
-
-
-
-
-// module.exports= Inidamarket
