@@ -1,8 +1,4 @@
 {
- "scripts": {
-  "postinstall": "npx puppeteer browsers install chrome && npx playwright install chromium",
-  "start": "node server.js"
- },
  "dependencies": {
   "@mozilla/readability": "^0.6.0",
   "@sparticuz/chromium": "^153.0.0",
