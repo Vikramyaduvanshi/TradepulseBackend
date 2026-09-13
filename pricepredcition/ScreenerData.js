@@ -12,6 +12,7 @@ async function getScreenerData(symbol = "BEL") {
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
         Accept: "text/html,application/xhtml+xml",
       },
+      timeout: 15000,
     });
 
     const $ = cheerio.load(data);
@@ -38,6 +39,12 @@ async function getScreenerData(symbol = "BEL") {
       profit: [],
       eps: [],
     };
+
+    // Agar company mila hi nahi (invalid symbol), company name empty rahega
+    if (!result.company) {
+      console.log(`Screener: No company found for symbol "${symbol}"`);
+      return { success: false, error: `No data found for symbol "${symbol}"` };
+    }
 
     // =====================================
     // TOP RATIOS
@@ -77,22 +84,18 @@ async function getScreenerData(symbol = "BEL") {
           }
         });
 
-      // SALES
       if (title.includes("sales")) {
         result.sales = values.map(Number);
       }
 
-      // PROFIT
       if (title.includes("net profit")) {
         result.profit = values.map(Number);
       }
 
-      // OPM
       if (title.includes("opm")) {
         result.opm = values[values.length - 1] + "%";
       }
 
-      // EPS
       if (title.includes("eps in rs")) {
         result.eps = values.map(Number);
       }
@@ -112,7 +115,6 @@ async function getScreenerData(symbol = "BEL") {
 
     // =====================================
     // YoY Growth
-    // latest vs same quarter last year
     // =====================================
     function growth(current, previous) {
       if (!previous || previous === 0) return "0.00";
@@ -122,31 +124,20 @@ async function getScreenerData(symbol = "BEL") {
     if (result.sales.length >= 5) {
       const latest = result.sales[result.sales.length - 1];
       const prevYear = result.sales[result.sales.length - 5];
-
       result.salesGrowthYoY = growth(latest, prevYear) + "%";
     }
 
     if (result.profit.length >= 5) {
       const latest = result.profit[result.profit.length - 1];
       const prevYear = result.profit[result.profit.length - 5];
-
       result.profitGrowthYoY = growth(latest, prevYear) + "%";
     }
 
-    return result;
+    return { success: true, ...result };
   } catch (error) {
-    console.log("❌ Error:", error.message);
-    return null;
+    console.log("Screener Error:", error.message);
+    return { success: false, error: error.message };
   }
 }
 
-
-
-
-
-// async function Screenerdata() {
-//     let data= await getScreenerData("BEL")
-//     console.log(data)
-// }
-module.exports=getScreenerData
-
+module.exports = getScreenerData;

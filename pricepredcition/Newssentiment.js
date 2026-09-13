@@ -1,4 +1,5 @@
-const puppeteer = require('puppeteer');
+const chromium = require("@sparticuz/chromium");
+const puppeteer = require("puppeteer-core");
 const cheerio = require("cheerio");
 const Parser = require("rss-parser");
 const parser = new Parser();
@@ -55,9 +56,10 @@ function shouldOpen(title) {
 async function readArticle(googleUrl) {
     let browser;
     try {
-        browser = await puppeteer.launch({ 
-            headless: "new", 
-            args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+        browser = await puppeteer.launch({
+            args: chromium.args,
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless,
         });
         const page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');

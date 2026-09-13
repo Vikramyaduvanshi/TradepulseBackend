@@ -1,4 +1,5 @@
-const puppeteer = require("puppeteer");
+const chromium = require("@sparticuz/chromium");
+const puppeteer = require("puppeteer-core");
 const axios = require("axios");
 
 // ==========================================
@@ -9,7 +10,9 @@ const axios = require("axios");
 // ==========================================
 async function getNSEData(mode = "summary") {
   const browser = await puppeteer.launch({
-    headless: "new"
+    args: chromium.args,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
   });
 
   try {
@@ -45,7 +48,7 @@ async function getNSEData(mode = "summary") {
       }
     );
 
-    return filterImportantData(res.data, mode);
+    return { success: true, ...filterImportantData(res.data, mode) };
 
   } catch (error) {
     return {
@@ -86,58 +89,36 @@ function filterImportantData(data, mode) {
     )
   );
 
-  // ==========================================
-  // CLEAN ALL SECTORS (113)
-  // ==========================================
-  // ==========================================
-// CLEAN ALL SECTORS (REFINED SETUP)
-// ==========================================
-const allSectors = useful.map(x => ({
-    // Identification Keys
+  const allSectors = useful.map(x => ({
     sector: x.index || "",
     symbol: x.indexSymbol || "",
     indexName: x.indexName || x.index || "",
     category: x.key || "OTHERS",
 
-    // Market Movement (Numbers)
     todayChange: Number(x.percentChange) || 0,
     change30d: Number(x.perChange30d) || 0,
     change1Y: Number(x.perChange365d) || 0,
 
-    // Valuation Metrics
     pe: Number(x.pe) || 0,
     pb: Number(x.pb) || 0,
 
-    // Market Breadth
     advances: Number(x.advances) || 0,
     declines: Number(x.declines) || 0,
- 
-}));
 
-  // ==========================================
-  // TOP STRONG
-  // ==========================================
+  }));
+
   const topStrongSector = [...allSectors]
     .sort((a, b) => b.change30d - a.change30d)
     .slice(0, 5);
 
-  // ==========================================
-  // TOP WEAK
-  // ==========================================
   const topWeakSector = [...allSectors]
     .sort((a, b) => a.change30d - b.change30d)
     .slice(0, 5);
 
-  // ==========================================
-  // NIFTY 50
-  // ==========================================
   const nifty50 = indices.find(
     x => x.index === "NIFTY 50"
   );
 
-  // ==========================================
-  // MARKET BREADTH
-  // ==========================================
   const advances = data.advances || 0;
   const declines = data.declines || 0;
   const unchanged = data.unchanged || 0;
@@ -177,9 +158,6 @@ const allSectors = useful.map(x => ({
     totalSectorsScanned: allSectors.length
   };
 
-  // ==========================================
-  // MODE BASED RETURN
-  // ==========================================
   if (mode === "full") {
     return {
       ...baseData,
@@ -199,17 +177,4 @@ function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ==========================================
-// USAGE
-// ==========================================
-
-// small data
-async function run(){
-//   let res = await getNSEData()
-// console.log("half data", res)
-// full 113 sectors
-let resfull = await getNSEData("full")
-// console.log("full data", resfull)
-}
-// run()
 module.exports = getNSEData;

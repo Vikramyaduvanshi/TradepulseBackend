@@ -1,5 +1,5 @@
 const YahooFinance = require("yahoo-finance2").default;
-const yahooFinance = new YahooFinance();
+const yahooFinance = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
 
 const { SMA, RSI, MACD } = require("technicalindicators");
 
@@ -18,8 +18,8 @@ async function getTechnicalData(symbol = "BEL.NS") {
     });
 
     if (!candles || candles.length === 0) {
-      console.log("No data found");
-      return;
+      console.log("No historical data found for", symbol);
+      return { success: false, error: `No historical data found for ${symbol}` };
     }
 
     // ==========================================
@@ -43,6 +43,16 @@ async function getTechnicalData(symbol = "BEL.NS") {
     // ==========================================
     const close = candles.map(c => c.close);
     const volume = candles.map(c => c.volume);
+
+    // ==========================================
+    // Ensure enough data points for 200 DMA
+    // ==========================================
+    if (close.length < 200) {
+      return {
+        success: false,
+        error: `Not enough historical data to calculate 200-DMA for ${symbol} (need 200+ days, got ${close.length})`,
+      };
+    }
 
     // ==========================================
     // 50 DMA
@@ -71,7 +81,7 @@ async function getTechnicalData(symbol = "BEL.NS") {
     // ==========================================
     // MACD
     // ==========================================
-    const latestMACD = MACD.calculate({
+    const macdResult = MACD.calculate({
       values: close,
       fastPeriod: 12,
       slowPeriod: 26,
@@ -80,8 +90,12 @@ async function getTechnicalData(symbol = "BEL.NS") {
       SimpleMASignal: false
     }).slice(-1)[0];
 
+    if (!macdResult) {
+      return { success: false, error: `Not enough data to calculate MACD for ${symbol}` };
+    }
+
     const macdSignal =
-      latestMACD.MACD > latestMACD.signal
+      macdResult.MACD > macdResult.signal
         ? "Bullish"
         : "Bearish";
 
@@ -129,6 +143,7 @@ async function getTechnicalData(symbol = "BEL.NS") {
     // FINAL RETURN
     // ==========================================
     return {
+      success: true,
       symbol,
       companyName,
       sector,
@@ -150,16 +165,9 @@ async function getTechnicalData(symbol = "BEL.NS") {
     };
 
   } catch (error) {
-    console.log("❌ Error:", error.message);
+    console.log("Technical Data Error:", error.message);
+    return { success: false, error: error.message };
   }
 }
-
-// ==========================================
-// TEST
-// ==========================================
-// (async () => {
-//   const data = await getTechnicalData("BEL.NS");
-//   console.log("technical data", data);
-// })();
 
 module.exports = getTechnicalData;

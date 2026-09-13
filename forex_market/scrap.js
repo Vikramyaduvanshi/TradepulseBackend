@@ -1,4 +1,5 @@
-const puppeteer = require("puppeteer");
+const chromium = require("@sparticuz/chromium");
+const puppeteer = require("puppeteer-core");
 const cheerio = require("cheerio");
 
 async function getFullArticle(url) {
@@ -8,8 +9,9 @@ async function getFullArticle(url) {
   try {
 
     browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox"]
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
@@ -39,25 +41,18 @@ async function getFullArticle(url) {
 
     await browser.close();
 
-    return paragraphs.join("\n\n");
+    return { success: true, content: paragraphs.join("\n\n") };
 
   } catch (err) {
 
     if (browser) await browser.close();
 
-    console.log(err.message);
+    console.log("getFullArticle Error:", err.message);
 
-    return "";
+    return { success: false, error: err.message };
 
   }
 
 }
 
-// test
-async function MAIN(){
-let res=await  getFullArticle("https://www.bloomberg.com/news/articles/2026-05-21/asian-stocks-to-rise-on-optimism-over-iran-talks-markets-wrap")
-
-// console.log(res)
-}
-
-// MAIN()
+module.exports = getFullArticle;
