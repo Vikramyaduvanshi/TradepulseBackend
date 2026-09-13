@@ -1,6 +1,15 @@
 const puppeteerCore = require("puppeteer-core");
 const fs = require("fs");
 
+let chromiumExecutablePathPromise = null; // cache
+
+async function getChromiumExecutablePath(chromium) {
+  if (!chromiumExecutablePathPromise) {
+    chromiumExecutablePathPromise = chromium.executablePath();
+  }
+  return chromiumExecutablePathPromise;
+}
+
 async function launchBrowser(extraArgs = [], useStealth = false) {
   const isProduction = process.env.NODE_ENV === "production";
 
@@ -14,15 +23,15 @@ async function launchBrowser(extraArgs = [], useStealth = false) {
   }
 
   if (isProduction) {
-    // Render / Linux production environment
     const chromium = require("@sparticuz/chromium");
+    const executablePath = await getChromiumExecutablePath(chromium);
+
     return puppeteer.launch({
       args: [...chromium.args, ...extraArgs],
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: chromium.headless,
     });
   } else {
-    // Local Windows development
     return puppeteer.launch({
       headless: true,
       executablePath: findLocalChrome(),

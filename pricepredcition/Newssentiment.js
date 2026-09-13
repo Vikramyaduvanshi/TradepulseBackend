@@ -52,11 +52,10 @@ function shouldOpen(title) {
     return hasAction || hasCritical;
 }
 
-async function readArticle(googleUrl) {
-    let browser;
+async function readArticle(browser, googleUrl) {
+    let page;
     try {
-        browser = await launchBrowser();
-        const page = await browser.newPage();
+        page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         
         await page.goto(googleUrl, { waitUntil: 'networkidle2', timeout: 60000 });
@@ -74,7 +73,7 @@ async function readArticle(googleUrl) {
         });
 
         let articleContent = contentArray.join("\n\n");
-        await browser.close();
+        await page.close();
 
         return {
             success: true,
@@ -83,12 +82,13 @@ async function readArticle(googleUrl) {
             content: articleContent ? articleContent.slice(0, 1000) : "No Content Found",
         };
     } catch (error) {
-        if (browser) await browser.close();
+        if (page) await page.close();
         return { success: false, error: error.message };
     }
 }
 
 async function Newssentiment(symbol) {
+    let browser;
     try {
         let news = await getNews(symbol);
         news.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -114,9 +114,15 @@ async function Newssentiment(symbol) {
         // Yahan limit lagayi hai (sirf top 5 articles) kyunki Puppeteer slow hota hai
         const topUnique = unique.slice(0, 5); 
 
+        // Browser sirf ek baar launch hoga, agar koi article open karna pade tabhi
+        const needsBrowser = topUnique.some(item => shouldOpen(item.title));
+        if (needsBrowser) {
+            browser = await launchBrowser();
+        }
+
         for (let item of topUnique) {
             if (shouldOpen(item.title)) {
-                let res = await readArticle(item.link);
+                let res = await readArticle(browser, item.link);
                 if (res.success) {
                     final.push({
                         title: item.title,
@@ -139,6 +145,8 @@ async function Newssentiment(symbol) {
     } catch (error) {
         console.log("Newssentiment Error:", error.message);
         return { success: false, error: error.message };
+    } finally {
+        if (browser) await browser.close();
     }
 }
 
