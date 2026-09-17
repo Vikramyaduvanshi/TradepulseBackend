@@ -28,22 +28,20 @@ image_url:{type:String, default:""}
 
 
 
-const domecticsNews = new mongoose.Schema(
+const domesticNewsSchema = new mongoose.Schema(
   {
-symbol:String,
-sm_name:String,
-smIndustry:String,
-attchmntText:String,
-isin:String,//for uniqnes in mongodb
-attchmntFile:String,
-GeneratedText:String,// will add news if new news come ,
-announcementDate:Date
+    ID: { type: Number, unique: true }, // API ka unique id — isin ki jagah uniqueness ke liye
+    Date: Date,                          // announcement date
+    Time: String,                        // e.g. "12:00 pm" — string hi rakha, API jaisa
+    Caption: String,
+    Description: String,
+    Details: String,                     // raw HTML content
+    GeneratedText: String,                // AI summary — waisa hi rakha jaisa pehle tha
   },
- 
   { timestamps: true }
 );
 
-domecticsNews.index({isin:1,announcementDate:-1 })
+domesticNewsSchema.index({ ID: 1, Date: -1 });
 
 let Userschema= new mongoose.Schema({
   name: {type:String},
@@ -87,7 +85,7 @@ let Finalanalysedforex= mongoose.model("Finalanalysedforex",finalmarketschema)
 let Calender= mongoose.model("Calender", Calenderschema)
 
 
-let DomesticNews= mongoose.model("DomesticNews", domecticsNews)
+let DomesticNews= mongoose.model("DomesticNews", domesticNewsSchema)
 let Trade= mongoose.model("Trade", tradeSchema);
 
 let News= mongoose.model("News", newsSchema);

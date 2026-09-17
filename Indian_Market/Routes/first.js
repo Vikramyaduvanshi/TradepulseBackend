@@ -1,44 +1,62 @@
 let express= require("express")
 const { DomesticNews } = require("../../modal/modal");
 const { UpcomingIpo, GetListedIPOs, GetOngoingIPOs } = require("../IPO");
+const generateDomesticSummary = require("../DomesticAi");
 let Indiarouter= express.Router()
-
 
 
 Indiarouter.get("/india_news", async (req, res) => {
   try {
-    let { limit = 20, page = 1, searchword, isin } = req.query;
+    let { limit = 20, page = 1, searchword, id } = req.query;
 
     let searchobj = {};
 
-  
-    if (isin) {
-      searchobj.isin = isin;
+    if (id) {
+      searchobj.ID = Number(id);
     } 
-   
+    
     else if (searchword) {
-      searchobj.sm_name = { $regex: searchword, $options: "i" };
+      // Ab dedicated company-name field nahi hai, isliye Caption + Description
+      // dono me regex search kar rahe hain
+      searchobj.$or = [
+        { Description: { $regex: searchword, $options: "i" } },
+        { Caption: { $regex: searchword, $options: "i" } }
+      ];
     }
 
     let skip = (Number(page) - 1) * Number(limit);
 
     let news = await DomesticNews.aggregate([
       { $match: searchobj },
-      { $sort: { announcementDate: -1 } },
+      { $sort: { Date: -1 } },
       { $skip: skip },
       { $limit: Number(limit) },
       {
         $project: {
-          symbol: 1,
-          sm_name: 1,
-          GeneratedText: 1,
-          announcementDate: 1,
-          isin: 1 
+          ID: 1,
+          Caption: 1,
+          Description: 1,
+          Details:1,
+          Date: 1,
+          Time: 1
         }
       }
     ]);
 
     res.json({ success: true, news });
+
+  } catch (e) {
+    res.json({ success: false, message: e.message });
+  }
+});
+
+Indiarouter.post("/analysedIndia", async (req, res) => {
+  try {
+    let {Description,Details, language}= req.body
+let finaltext=`Description:${Description} , details:${Details}`
+    let res1=await generateDomesticSummary(finaltext,language)
+
+return res.json({data:res1,success:true})
 
   } catch (e) {
     res.json({ success: false, message: e.message });

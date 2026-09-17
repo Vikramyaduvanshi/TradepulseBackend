@@ -86,11 +86,12 @@ let final = arr.map((v,i)=>{
   let {title,summary}=v
 return { title,summary}
 })
+console.log(final)
 return  final;
 }
 
+Cleanedforexfactorydata()
 
 
 
-
-module.exports=Cleanedforexfactorydata
+// module.exports=Cleanedforexfactorydata

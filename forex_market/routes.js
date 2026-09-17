@@ -22,7 +22,7 @@ res.json({message:e.message, success:true})
 async function main(url,language,description) {
   const res = await scrapePage(url, { stealth: true });
 let newsanalysed;
-console.log(res)
+// console.log(res)
   if (res.success==false) {
     console.log("Scraping failed:", res.error);
      newsanalysed = await modelFunction(description, language);
@@ -41,6 +41,7 @@ Forexrouter.post("/analysed_news", async (req, res) => {
   try {
     let { url, language, description } = req.body;
     let result = await main(url, language, description);
+    console.log("analysed ",result)
     res.json({ success: true, data: result });   // ← pehle hardcoded false tha, fix kiya
   } catch (e) {
     res.json({ success: false, message: e.message });

@@ -1,8 +1,8 @@
 
 const { Calender, Finalanalysedforex } = require("../modal/modal")
 const Fetchcomineddata = require("./fetch_data_from_db")
-const Cleanedforexfactorydata= require("./Forex_factory_news")
-// const Cleangnewsdata = require("./forex_fetch")
+// const Cleanedforexfactorydata= require("./Forex_factory_news")
+const Cleangnewsdata = require("./forex_fetch")
 const { gnewsdatafromdb } = require("./forex_fetch");
 const ForexTechnicalData = require("./forex_technical")
 const forexMarketAnalysis = require("./ForexAianalyses")
@@ -69,7 +69,7 @@ async function fetchcalenderdata() {
 async function fULL_forex_analyse(){ 
     // let news= await Fetchcomineddata()
      for(let v of pairs){
-    let techinaldata = await ForexTechnicalData(v)
+ let techinaldata = await ForexTechnicalData(v)
  pairstechincaldata.push(techinaldata)
 
 }
@@ -78,7 +78,7 @@ let next3dayscalender= await fetchcalenderdata()
 // console.log("\n")
 // console.log(next3dayscalender, "next 3 days caleneder data");
 
-let forexfactory_news = await Cleanedforexfactorydata()
+// let forexfactory_news = await Cleanedforexfactorydata()
 // console.log(forexfactory_news , "forexfactory_news news previous 3 hours");
 
 // let gnews= (await Cleangnewsdata()).slice(0,10)
@@ -101,10 +101,6 @@ ${JSON.stringify(technical)}
 Next 3 days ECONOMIC CALENDAR
 
 ${JSON.stringify(next3dayscalender)}
-
-FOREX FACTORY NEWS
-
-${JSON.stringify(forexfactory_news)}
 
 GLOBAL FOREX NEWS
 

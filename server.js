@@ -14,7 +14,6 @@ let PORT= process.env.PORT || 8000
 App.use(cors({
 
     origin: "http://localhost:5173", 
-
     credentials: true
 
 }))
@@ -389,7 +388,7 @@ cron.schedule("*/30 * * * *", async () => {
 
 //crone for domestic
 cron.schedule("*/30 * * * *", async () => {
-  // console.log("⏰ Cron running every 1 minute...");
+  console.log("⏰ Cron running every 1 minute...");
 
   try {
     await runDomesticPipeline();

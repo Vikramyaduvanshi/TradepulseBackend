@@ -1,5 +1,4 @@
-const YahooFinance =
-  require("yahoo-finance2").default;
+const YahooFinance = require("yahoo-finance2").default;
 
 const yahooFinance =
   new YahooFinance();
@@ -78,14 +77,25 @@ async function ForexTechnicalData(
     // HISTORICAL DATA
     // ==========================================
 
-    const candles =
+    const rawCandles =
       await yahooFinance.historical(
         symbol,
         {
           period1: new Date("2024-01-01"),
           period2: new Date(),
           interval: "1d",
+        },
+        {
+          validateResult: false
         }
+      );
+
+    // Aaj ka candle abhi market open hone ki wajah se
+    // incomplete ho sakta hai (close/adjclose null) -
+    // usko hata do taaki indicators kharab na hon
+    const candles =
+      (rawCandles || []).filter(
+        c => c.close !== null && c.close !== undefined
       );
 
     if (
