@@ -50,6 +50,10 @@ const Userschema = new mongoose.Schema({
     date: { type: Date, default: Date.now }, // () hata diya, warna sabki date same ho jati hai
     chat: [{ role: { type: String }, message: { type: String } }],
   }],
+  limit: {
+  count: { type: Number, default: 0 },
+  blockedUntil: { type: Date, default: null },  // limit full hone ke 6 ghante baad ka time
+}
 }, { timestamps: true });
 
 const Calenderschema = new mongoose.Schema({

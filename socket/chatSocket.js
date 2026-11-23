@@ -1,3 +1,5 @@
+const checkLimit = require("../modal/checklimit")
+const { Usermodel } = require("../modal/modal")
 const predictorresult = require("../pricepredcition/Mainpredictor")
 const companyAgent = require("./Model_text")
 
@@ -32,6 +34,7 @@ function safePreview(v) {
 }
 
 function chatSocket(io, socket) {
+    const { id } = socket.user
 
     socket.on("send_message", async (data) => {
         const send = (m) => socket.emit("receive_message", m)
@@ -43,6 +46,28 @@ function chatSocket(io, socket) {
         socket.data.busy = true
 
         try {
+            // ---- Limit check (analysis se pehle) ----
+            const allowed = await checkLimit(id)
+            if (!allowed) {
+                const u = await Usermodel.findById(id).select("limit.blockedUntil")
+                const retryTime = u?.limit?.blockedUntil
+  ? new Date(u.limit.blockedUntil).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+  : "some time";
+                return send({
+                    error: true,
+                    limitReached: true,
+                    message: `limit has crosed, please try again after ${retryTime} `,
+                })
+            }
+            // ---- Yahan se purana logic same ----
+
             send("Understanding your query...")
             let model_text = await companyAgent(userText)
 

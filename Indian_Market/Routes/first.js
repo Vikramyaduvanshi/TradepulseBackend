@@ -1,7 +1,8 @@
 let express= require("express")
-const { DomesticNews } = require("../../modal/modal");
+const { DomesticNews, Usermodel } = require("../../modal/modal");
 const { UpcomingIpo, GetListedIPOs, GetOngoingIPOs } = require("../IPO");
 const generateDomesticSummary = require("../DomesticAi");
+const checkLimit = require("../../modal/checklimit");
 let Indiarouter= express.Router()
 
 
@@ -64,16 +65,50 @@ const stripHtml = (html = "") =>
 
 Indiarouter.post("/analysedIndia", async (req, res) => {
   try {
-    const { Description, Details } = req.body;
-    const language = String(req.body.language || "English").trim().slice(0, 40);
+    const { Description, Details, email } = req.body;
 
+    // 1. Pehle validation
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email required" });
+    }
     if (!Description && !Details) {
       return res
         .status(400)
         .json({ success: false, message: "Description or Details required" });
     }
 
-    const finaltext = `Description: ${Description || ""}\nDetails: ${stripHtml(Details).slice(0, 6000)}`;
+    // 2. User dhundo (await zaruri hai)
+    const user = await Usermodel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // 3. Limit check
+    const allowed = await checkLimit(user._id);
+    if (!allowed) {
+      const u = await Usermodel.findById(user._id).select("limit.blockedUntil");
+      const retryTime = u?.limit?.blockedUntil
+  ? new Date(u.limit.blockedUntil).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+  : "some time";
+
+return res.status(429).json({
+  success: false,
+  message: `Limit has crossed, please try again after ${retryTime}`,
+  retryAfter: u?.limit?.blockedUntil,
+});
+
+    }
+
+  
+    const language = String(req.body.language || "English").trim().slice(0, 40);
+    const finaltext = `Description: ${Description || ""}\nDetails: ${stripHtml(Details || "").slice(0, 6000)}`;
 
     const data = await generateDomesticSummary(finaltext, language);
     return res.json({ success: true, data });
@@ -81,7 +116,6 @@ Indiarouter.post("/analysedIndia", async (req, res) => {
     return res.status(500).json({ success: false, message: e.message });
   }
 });
-
 
 
 
