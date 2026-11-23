@@ -50,16 +50,35 @@ Indiarouter.get("/india_news", async (req, res) => {
   }
 });
 
+const stripHtml = (html = "") =>
+  html
+    .replace(/<\/(p|li|div|h\d)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
 Indiarouter.post("/analysedIndia", async (req, res) => {
   try {
-    let {Description,Details, language}= req.body
-let finaltext=`Description:${Description} , details:${Details}`
-    let res1=await generateDomesticSummary(finaltext,language)
+    const { Description, Details } = req.body;
+    const language = String(req.body.language || "English").trim().slice(0, 40);
 
-return res.json({data:res1,success:true})
+    if (!Description && !Details) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Description or Details required" });
+    }
 
+    const finaltext = `Description: ${Description || ""}\nDetails: ${stripHtml(Details).slice(0, 6000)}`;
+
+    const data = await generateDomesticSummary(finaltext, language);
+    return res.json({ success: true, data });
   } catch (e) {
-    res.json({ success: false, message: e.message });
+    return res.status(500).json({ success: false, message: e.message });
   }
 });
 
