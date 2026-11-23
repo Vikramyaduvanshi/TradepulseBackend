@@ -44,7 +44,7 @@ res.json({success:false, message:e.message})
 
 newsrouter.get("/get_news", async (req,res)=>{
 try{
-   let {searchword, page=1, limit=20}= req.query
+   let {searchword, page=1, limit=60}= req.query
 // console.log(searchword)
    let searchobj={};
    if(searchword && searchword.trim() !== ""){

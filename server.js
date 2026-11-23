@@ -388,7 +388,7 @@ cron.schedule("*/30 * * * *", async () => {
 
 //crone for domestic
 cron.schedule("*/30 * * * *", async () => {
-  console.log("⏰ Cron running every 1 minute...");
+  console.log("⏰ domestic crone");
 
   try {
     await runDomesticPipeline();
