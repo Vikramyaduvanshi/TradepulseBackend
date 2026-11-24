@@ -37,13 +37,13 @@ async function predictorresult(symbol, onProgress = () => { }) {
 
         const [deliveryData, newsData, screenerData, technicalData, fiiDiiData, NSEdata, sector_impact] =
             await Promise.all([
-                track("Delivery data", Delevery(symbol)),
-                track("News sentiment", Newssentiment(symbol)),
-                track("Fundamentals", getScreenerData(symbol)),
-                track("Technical data", getTechnicalData(symbol + ".NS")),
-                track("FII/DII data", getFIIDII()),
-                track("NSE data", getNSEData()),
-                track("Sector impact", sector_mapping(symbol + ".NS")),
+                    track("Delivery data", Delevery(symbol)),
+                    track("News sentiment", Newssentiment(symbol)),
+                    track("Fundamentals", getScreenerData(symbol)),
+                    track("Technical data", getTechnicalData(symbol + ".NS")),
+                    track("FII/DII data", getFIIDII()),
+                    track("NSE data", getNSEData()),
+                    track("Sector impact", sector_mapping(symbol + ".NS")),
             ]);
 
         onProgress({ step: "Generating AI analysis", ok: true, done: total - 1, total });

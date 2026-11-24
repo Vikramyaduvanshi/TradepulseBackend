@@ -28,53 +28,56 @@ function sectorimpact(technical, nsedata) {
     const yahooIndustry = (technical.industry || "").toLowerCase().trim();
     const yahooSector = (technical.sector || "").toLowerCase().trim();
 
-    // --- STRATEGY 1: DIRECT HASH MAP LOOKUP (Fastest - O(1)) ---
-    // Pehle industry ko check karo, phir sector ko
-    let matchConfig = aliasMap.get(yahooIndustry) || aliasMap.get(yahooSector);
+    const normalize = (str) => String(str || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    const nseMap = new Map(sectors.map((s) => [normalize(s.indexName), s]));
 
+    // STRATEGY 1: direct alias match
+    const matchConfig = aliasMap.get(yahooIndustry) || aliasMap.get(yahooSector);
     if (matchConfig) {
-        const found = sectors.find(s => s.indexName === matchConfig.indexName || s.symbol === matchConfig.indexName);
-        if (found) return found;
+        const found = sectors.find(
+            (s) => s.indexName === matchConfig.indexName || s.symbol === matchConfig.indexName
+        );
+        if (found) return { ...found, matchType: "direct", priority: matchConfig.priority };
     }
 
-    // --- STRATEGY 2: NORMALIZED INDEX LOOKUP (Fast - O(N)) ---
-    // Agar direct nahi mila, toh normalization sirf ek baar karke Map banalo
-    const normalize = (str) => String(str || "").replace(/[^A-Z0-9]/g, '').toUpperCase();
-    
-    // NSE Data ko Map mein dalo lookup fast karne ke liye
-    const nseMap = new Map(sectors.map(s => [normalize(s.indexName), s]));
-
-    // Industry ke words split karke dhoondo
+    // STRATEGY 2: words se index name match
     const words = `${yahooIndustry} ${yahooSector}`.split(/[\s&,-]+/);
     for (const word of words) {
         const cleanWord = normalize(word);
         if (cleanWord.length < 4) continue;
-        
-        if (nseMap.has(cleanWord)) return nseMap.get(cleanWord);
+        if (nseMap.has(cleanWord)) return { ...nseMap.get(cleanWord), matchType: "word" };
     }
 
-    // --- STRATEGY 3: GLOBAL FALLBACK ---
+    // STRATEGY 3: global fallback (broad market, stock ka apna sector nahi)
     const fb = sectorMapping.rules.global_fallback;
-    return nseMap.get(normalize(fb)) || nseMap.get("NIFTY500") || "stock not find";
+    const fallback = nseMap.get(normalize(fb)) || nseMap.get("NIFTY500");
+    return fallback ? { ...fallback, matchType: "fallback" } : null;
 }
+
 // --- MAIN FUNCTION ---
-async function sector_mapping(ticker="BEL.NS") {
+async function sector_mapping(ticker = "BEL.NS") {
     try {
-        const technical = await getTechnicalData(ticker);
-        const nsedata = await getNSEData("full");
+        const [technical, nsedata] = await Promise.all([
+            getTechnicalData(ticker),
+            getNSEData("full"),
+        ]);
 
-        if (!technical || !nsedata) {
-            return null; // safety
-        }
+        if (!technical || !nsedata?.success) return null;
 
-        const nseObject = sectorimpact(technical, nsedata);
-
-        return nseObject || null; // ✅ always return something
-
+        return sectorimpact(technical, nsedata);
     } catch (error) {
-        console.error("Error:", error.message);
-        return null; // ✅ MUST
+        console.error("Sector mapping error:", error.message);
+        return null;
     }
 }
+
+async function main() {
+  let res= await sector_mapping("RECLTD.NS")
+  console.log(res)
+}
+
+main()
+
+
 
 module.exports=sector_mapping

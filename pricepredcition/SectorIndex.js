@@ -1,15 +1,14 @@
 const launchBrowser = require("./browserLauncher");
-const axios = require("axios");
+
+const CACHE_MS = 5 * 60 * 1000; // 5 minute
+let cache = { raw: null, at: 0 };
+let inflight = null; // ek saath kai requests aayein to browser ek hi baar khule
 
 // ==========================================
-// MAIN FUNCTION
-// mode:
-// "summary" => top5 strong + weak
-// "full"    => all 113 sectors cleaned
+// NSE se raw allIndices data laata hai
 // ==========================================
-async function getNSEData(mode = "summary") {
-  const browser = await launchBrowser();
-
+async function scrapeAllIndices() {
+  const browser = await launchBrowser(["--no-sandbox", "--disable-setuid-sandbox"]);
   try {
     const page = await browser.newPage();
 
@@ -17,41 +16,66 @@ async function getNSEData(mode = "summary") {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
     );
 
-    await page.goto("https://www.nseindia.com", {
-      waitUntil: "networkidle2"
+    // Heavy cheezein block karo
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      if (["image", "font", "stylesheet", "media"].includes(req.resourceType())) req.abort();
+      else req.continue();
     });
 
-    await wait(3000);
+    await page.goto("https://www.nseindia.com", {
+      waitUntil: "domcontentloaded",
+      timeout: 45000,
+    });
+    await new Promise((r) => setTimeout(r, 3000)); // cookies set hone do
 
-    const cookies = await page.cookies();
+    const result = await page.evaluate(async () => {
+      const res = await fetch("/api/allIndices", {
+        headers: { accept: "application/json, text/plain, */*" },
+        credentials: "include",
+      });
+      return { status: res.status, text: await res.text() };
+    });
 
-    const cookieString = cookies
-      .map(c => `${c.name}=${c.value}`)
-      .join("; ");
+    if (result.status !== 200) {
+      throw new Error(`NSE status ${result.status}: ${result.text.slice(0, 120)}`);
+    }
 
-    const res = await axios.get(
-      "https://www.nseindia.com/api/allIndices",
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124",
-          Accept: "application/json",
-          Referer: "https://www.nseindia.com/",
-          Cookie: cookieString
-        },
-        timeout: 15000
-      }
-    );
-
-    return { success: true, ...filterImportantData(res.data, mode) };
-
-  } catch (error) {
-    return {
-      success: false,
-      error: error.message
-    };
+    try {
+      return JSON.parse(result.text);
+    } catch {
+      throw new Error("NSE ne JSON nahi bheja (shayad block): " + result.text.slice(0, 120));
+    }
   } finally {
-    await browser.close();
+    await browser.close().catch(() => {});
+  }
+}
+
+// ==========================================
+// MAIN FUNCTION
+// mode:
+// "summary" => top5 strong + weak + aaj ke gainers/losers
+// "full"    => all sectors cleaned
+// ==========================================
+async function getNSEData(mode = "summary") {
+  // Fresh cache hai to browser kholne ki zarurat nahi
+  if (cache.raw && Date.now() - cache.at < CACHE_MS) {
+    return { success: true, cached: true, ...filterImportantData(cache.raw, mode) };
+  }
+
+  try {
+    if (!inflight) inflight = scrapeAllIndices().finally(() => (inflight = null));
+    const raw = await inflight;
+    cache = { raw, at: Date.now() };
+    return { success: true, ...filterImportantData(raw, mode) };
+  } catch (error) {
+    console.log("NSE data error:", error.message);
+
+    // Purana cache hai to wahi de do, kuch na hone se behtar hai
+    if (cache.raw) {
+      return { success: true, stale: true, ...filterImportantData(cache.raw, mode) };
+    }
+    return { success: false, error: error.message };
   }
 }
 
@@ -65,26 +89,23 @@ function filterImportantData(data, mode) {
     "THEMATIC INDICES",
     "STRATEGY INDICES",
     "SECTORAL INDICES",
-    "BROAD MARKET INDICES"
+    "BROAD MARKET INDICES",
   ];
 
+  // Leverage/inverse/SME jaise indices sector nahi hain, ranking se hatao
   const skipWords = [
-    "VIX",
-    "INVERSE",
-    "DIVIDEND",
-    "PR 1X",
-    "TR 1X",
-    "USD"
+    "VIX", "INVERSE", "DIVIDEND", "USD",
+    "LEVERAGE", "1X", "2X", "TR ", "PR ",
+    "SME",
   ];
 
-  const useful = indices.filter(item =>
-    allowedKeys.includes(item.key) &&
-    !skipWords.some(word =>
-      item.index.toUpperCase().includes(word)
-    )
+  const useful = indices.filter(
+    (item) =>
+      allowedKeys.includes(item.key) &&
+      !skipWords.some((word) => (item.index || "").toUpperCase().includes(word))
   );
 
-  const allSectors = useful.map(x => ({
+  const allSectors = useful.map((x) => ({
     sector: x.index || "",
     symbol: x.indexSymbol || "",
     indexName: x.indexName || x.index || "",
@@ -99,20 +120,34 @@ function filterImportantData(data, mode) {
 
     advances: Number(x.advances) || 0,
     declines: Number(x.declines) || 0,
-
   }));
 
-  const topStrongSector = [...allSectors]
+  // Jinka 30 din ka data nahi hai (0), unhe ranking se hatao
+  const rankable = allSectors.filter((s) => s.change30d !== 0);
+
+  // 30 din ka trend: strong sirf wo jo badhe, weak sirf wo jo ghate
+  const topStrongSector = [...rankable]
+    .filter((s) => s.change30d > 0)
     .sort((a, b) => b.change30d - a.change30d)
     .slice(0, 5);
 
-  const topWeakSector = [...allSectors]
-    .sort((a, b) => a.change30d - b.change30d)
+ const topWeakSector = [...rankable]
+  .sort((a, b) => a.change30d - b.change30d)
+  .slice(0, 5)
+  .map((s) => ({ ...s, negative30d: s.change30d < 0 }));
+
+  // Aaj ka mood: aaj kaun upar, kaun neeche
+  const todayGainers = [...allSectors]
+    .filter((s) => s.todayChange > 0)
+    .sort((a, b) => b.todayChange - a.todayChange)
     .slice(0, 5);
 
-  const nifty50 = indices.find(
-    x => x.index === "NIFTY 50"
-  );
+  const todayLosers = [...allSectors]
+    .filter((s) => s.todayChange < 0)
+    .sort((a, b) => a.todayChange - b.todayChange)
+    .slice(0, 5);
+
+  const nifty50 = indices.find((x) => x.index === "NIFTY 50");
 
   const advances = data.advances || 0;
   const declines = data.declines || 0;
@@ -120,17 +155,10 @@ function filterImportantData(data, mode) {
 
   let breadth = "Neutral";
 
-  if (advances > declines && advances < declines * 1.5)
-    breadth = "Bullish";
-
-  if (advances > declines * 1.5)
-    breadth = "Strong Bullish";
-
-  if (declines > advances && declines < advances * 1.5)
-    breadth = "Bearish";
-
-  if (declines > advances * 1.5)
-    breadth = "Strong Bearish";
+  if (advances > declines && advances < declines * 1.5) breadth = "Bullish";
+  if (advances > declines * 1.5) breadth = "Strong Bullish";
+  if (declines > advances && declines < advances * 1.5) breadth = "Bearish";
+  if (declines > advances * 1.5) breadth = "Strong Bearish";
 
   const baseData = {
     timestamp: data.timestamp,
@@ -139,37 +167,43 @@ function filterImportantData(data, mode) {
       breadth,
       advances,
       declines,
-      unchanged
+      unchanged,
     },
 
     niftyTrend: nifty50
       ? {
           last: Number(nifty50.last),
           todayChange: Number(nifty50.percentChange),
-          pe: Number(nifty50.pe || 0)
+          pe: Number(nifty50.pe || 0),
         }
       : null,
 
-    totalSectorsScanned: allSectors.length
+    totalSectorsScanned: allSectors.length,
   };
 
   if (mode === "full") {
     return {
       ...baseData,
-      sectors: allSectors
+      sectors: allSectors,
     };
   }
 
   return {
     ...baseData,
     topStrongSector,
-    topWeakSector
+    topWeakSector,
+    todayGainers,
+    todayLosers,
   };
 }
 
-// ==========================================
-function wait(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+
+
+// async function main() {
+//   let res= await getNSEData()
+//   console.log(res)
+// }
+
+// main()
 
 module.exports = getNSEData;
