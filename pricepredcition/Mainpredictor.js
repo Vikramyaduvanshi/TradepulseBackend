@@ -9,7 +9,7 @@ const getScreenerData = require("./ScreenerData")
 const getNSEData = require("./SectorIndex")
 const { newsdatastockedge } = require("./stockedge")
 const getTechnicalData = require("./TechnicalAnalyse")
-
+const { cached } = require("./catched");
 
 
 
@@ -21,7 +21,7 @@ const withTimeout = (p, ms, name) =>
 
 async function predictorresult(symbol, onProgress = () => { }) {
     try {
-        console.log(symbol,"symbol in predictorresult ")
+        console.log(symbol, "symbol in predictorresult ")
         const total = 9; // 6 parallel + news + stockedge fundamentals + AI
         let done = 0;
 
@@ -40,13 +40,12 @@ async function predictorresult(symbol, onProgress = () => { }) {
 
         const [deliveryData, screenerData, technicalData, fiiDiiData, NSEdata, sector_impact] =
             await Promise.all([
-                track("Delivery data", Delevery(symbol)),
-                track("Fundamentals", getScreenerData(symbol)),
-                track("Technical data", getTechnicalData(symbol + ".NS")),
-                track("FII/DII data", getFIIDII()),
-                track("NSE data", getNSEData()),
-                track("Sector impact", sector_mapping(symbol + ".NS")),
-            ]);
+                track("Delivery data", cached(`del:${symbol}`, 60 * 60e3, () => Delevery(symbol))),
+                track("Fundamentals", cached(`scr:${symbol}`, 12 * 3600e3, () => getScreenerData(symbol))),
+                track("Technical data", cached(`tech:${symbol}`, 5 * 60e3, () => getTechnicalData(symbol + ".NS"))),
+                track("FII/DII data", cached("fiidii", 60 * 60e3, () => getFIIDII())),
+                track("NSE data", cached("nse", 10 * 60e3, () => getNSEData())),
+                track("Sector impact", cached(`sector:${symbol}`, 30 * 60e3, () => sector_mapping(symbol + ".NS"))),]);
 
         // Symbol galat ho to yahin rok do
         if (!technicalData?.success) {
@@ -54,13 +53,18 @@ async function predictorresult(symbol, onProgress = () => { }) {
         }
 
         // Yahoo ka official naam, na mile to LLM wala
-        const officialName = screenerData.company ;
+        const officialName = screenerData.company;
 
-        const newsData = await track("News sentiment", newsdatastockedge(officialName));
-
+        const newsData = await track(
+            "News sentiment",
+            cached(`news:${symbol}`, 20 * 60e3, () => newsdatastockedge(officialName))
+        );
         const lastNews = Array.isArray(newsData) ? newsData[newsData.length - 1] : null;
         const stockedgefundamental = lastNews
-            ? await track("StockEdge fundamentals", CompanyFundamentals(lastNews))
+            ? await track(
+                "StockEdge fundamentals",
+                cached(`fund:${symbol}`, 6 * 60 * 60e3, () => CompanyFundamentals(lastNews))
+            )
             : null;
 
         onProgress({ step: "Generating AI analysis", ok: true, done: total - 1, total });

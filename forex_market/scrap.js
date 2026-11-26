@@ -1,53 +1,40 @@
-const launchBrowser = require("../pricepredcition/browserLauncher");
+const { withPage } = require("../pricepredcition/browserLauncher");
 const cheerio = require("cheerio");
 
 async function getFullArticle(url) {
-
-  let browser;
-
   try {
+    return await withPage(
+      async (page) => {
+        await page.goto(url, {
+          waitUntil: "networkidle2",
+          timeout: 60000,
+        });
 
-    browser = await launchBrowser();
+        const html = await page.content();
 
-    const page = await browser.newPage();
+        const $ = cheerio.load(html);
 
-    await page.goto(url, {
-      waitUntil: "networkidle2",
-      timeout: 60000
-    });
+        $("script, style, nav, footer, header").remove();
 
-    const html = await page.content();
+        const paragraphs = [];
 
-    const $ = cheerio.load(html);
+        $("p").each((i, el) => {
+          const text = $(el).text().trim();
 
-    $("script, style, nav, footer, header").remove();
+          if (text.length > 50) {
+            paragraphs.push(text);
+          }
+        });
 
-    let paragraphs = [];
-
-    $("p").each((i, el) => {
-
-      const text = $(el).text().trim();
-
-      if (text.length > 50) {
-        paragraphs.push(text);
-      }
-
-    });
-
-    await browser.close();
-
-    return { success: true, content: paragraphs.join("\n\n") };
-
+        return { success: true, content: paragraphs.join("\n\n") };
+      },
+      { stealth: true, timeoutMs: 75000 }
+    );
   } catch (err) {
-
-    if (browser) await browser.close();
-
     console.log("getFullArticle Error:", err.message);
 
     return { success: false, error: err.message };
-
   }
-
 }
 
 module.exports = getFullArticle;

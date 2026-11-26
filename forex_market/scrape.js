@@ -1,4 +1,4 @@
-let launchBrowser = require("./launchBrowser");
+const { withPage } = require("../pricepredcition/browserLauncher");
 const cheerio = require("cheerio");
 
 // Tags jinke andar text kabhi bhi "main content" nahi hota
@@ -138,87 +138,84 @@ async function scrapePage(url, options = {}) {
     retries = 1,
   } = options;
 
-  let browser;
-
   try {
-    browser = await launchBrowser([], stealth);
-    const page = await browser.newPage();
-
-    await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    );
-    await page.setViewport({ width: 1366, height: 900 });
-
-    await page.goto(url, { waitUntil, timeout });
-
-    let title = "";
-    let html = "";
-    let content = "";
-    let attempt = 0;
-
-    // Retry loop: agar challenge resolve nahi hota ya content abhi bhi
-    // challenge/block page jaisa lagta hai, to reload karke dobara try karo.
-    while (attempt <= retries) {
-      const resolved = await waitForCloudflareChallenge(page);
-
-      // Challenge resolve hone ke baad bhi page settle hone ka thoda time do
-      if (resolved) {
-        await new Promise((r) => setTimeout(r, 1200));
-      }
-
-      // Lazy-load content trigger karne ke liye scroll
-      await autoScroll(page);
-
-      title = await page.title().catch(() => "");
-      html = await page.content();
-      content = extractMainContent(html);
-
-      const stillBlocked = looksLikeChallengeOrBlock(title, content);
-
-      // Content bahut chhota hai (challenge page jaisa) ya block pattern match hua
-      if (!stillBlocked && content && content.length > 150) {
-        break; // Real content mil gaya
-      }
-
-      attempt++;
-
-      if (attempt <= retries) {
-        console.log(
-          `Challenge/block page detected (attempt ${attempt}/${retries}), reloading...`
+    return await withPage(
+      async (page) => {
+        await page.setUserAgent(
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         );
-        await page
-          .reload({ waitUntil, timeout })
-          .catch(() => {});
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-    }
+        await page.setViewport({ width: 1366, height: 900 });
 
-    // Final verdict: agar ab bhi challenge/block page jaisa content hai,
-    // ya content ka size bahut chhota hai, to ise FAIL treat karo.
-    if (looksLikeChallengeOrBlock(title, content) || !content || content.length < 150) {
-      return {
-        success: false,
-        url,
-        error:
-          "Blocked by bot-check / verification page did not resolve (Cloudflare or similar).",
-        title,
-        rawLength: content ? content.length : 0,
-      };
-    }
+        await page.goto(url, { waitUntil, timeout });
 
-    return {
-      success: true,
-      url,
-      title,
-      content,
-      length: content.length,
-    };
+        let title = "";
+        let html = "";
+        let content = "";
+        let attempt = 0;
+
+        // Retry loop: agar challenge resolve nahi hota ya content abhi bhi
+        // challenge/block page jaisa lagta hai, to reload karke dobara try karo.
+        while (attempt <= retries) {
+          const resolved = await waitForCloudflareChallenge(page);
+
+          // Challenge resolve hone ke baad bhi page settle hone ka thoda time do
+          if (resolved) {
+            await new Promise((r) => setTimeout(r, 1200));
+          }
+
+          // Lazy-load content trigger karne ke liye scroll
+          await autoScroll(page);
+
+          title = await page.title().catch(() => "");
+          html = await page.content();
+          content = extractMainContent(html);
+
+          const stillBlocked = looksLikeChallengeOrBlock(title, content);
+
+          // Content bahut chhota hai (challenge page jaisa) ya block pattern match hua
+          if (!stillBlocked && content && content.length > 150) {
+            break; // Real content mil gaya
+          }
+
+          attempt++;
+
+          if (attempt <= retries) {
+            console.log(
+              `Challenge/block page detected (attempt ${attempt}/${retries}), reloading...`
+            );
+            await page.reload({ waitUntil, timeout }).catch(() => {});
+            await new Promise((r) => setTimeout(r, 2000));
+          }
+        }
+
+        // Final verdict: agar ab bhi challenge/block page jaisa content hai,
+        // ya content ka size bahut chhota hai, to ise FAIL treat karo.
+        if (looksLikeChallengeOrBlock(title, content) || !content || content.length < 150) {
+          return {
+            success: false,
+            url,
+            error:
+              "Blocked by bot-check / verification page did not resolve (Cloudflare or similar).",
+            title,
+            rawLength: content ? content.length : 0,
+          };
+        }
+
+        return {
+          success: true,
+          url,
+          title,
+          content,
+          length: content.length,
+        };
+      },
+      // goto/reload (timeout) x2 + challenge wait (20s) x2 + scroll/sleep ka margin
+      { stealth, timeoutMs: timeout * 2 + 60000 }
+    );
   } catch (err) {
     console.log("scrapePage Error:", err.message);
     return { success: false, url, error: err.message };
-  } finally {
-    if (browser) await browser.close();
   }
 }
 
