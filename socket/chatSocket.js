@@ -54,25 +54,25 @@ function chatSocket(io, socket) {
             }
 
             // ---- Limit check (company pehchanne ke baad, analysis se pehle) ----
-            // const allowed = await checkLimit(id)
-            // if (!allowed) {
-            //     const u = await Usermodel.findById(id).select("limit.blockedUntil")
-            //     const retryTime = u?.limit?.blockedUntil
-            //         ? new Date(u.limit.blockedUntil).toLocaleString("en-IN", {
-            //             timeZone: "Asia/Kolkata",
-            //             day: "2-digit",
-            //             month: "short",
-            //             hour: "2-digit",
-            //             minute: "2-digit",
-            //             hour12: true,
-            //         })
-            //         : "some time"
-            //     return send({
-            //         error: true,
-            //         limitReached: true,
-            //         message: `Limit has crossed, please try again after ${retryTime}`,
-            //     })
-            // }
+            const allowed = await checkLimit(id)
+            if (!allowed) {
+                const u = await Usermodel.findById(id).select("limit.blockedUntil")
+                const retryTime = u?.limit?.blockedUntil
+                    ? new Date(u.limit.blockedUntil).toLocaleString("en-IN", {
+                        timeZone: "Asia/Kolkata",
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                    })
+                    : "some time"
+                return send({
+                    error: true,
+                    limitReached: true,
+                    message: `Limit has crossed, please try again after ${retryTime}`,
+                })
+            }
 
             send(`Analyzing ${company}...`)
 
