@@ -26,6 +26,7 @@ const socketmiddleware = async (socket, next) => {
     }
 
     socket.user = user;
+    // socket.user = user;
     next();
   } catch (e) {
     console.log(e);

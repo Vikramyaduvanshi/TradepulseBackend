@@ -83,9 +83,9 @@ async function getFIIDII() {
 
 
 
-async function main(){
-  let res= await getFIIDII() 
-  console.log(res)
-}
-main()
-// module.exports = getFIIDII;
+// async function main(){
+//   let res= await getFIIDII() 
+//   console.log(res)
+// }
+// main()
+module.exports = getFIIDII;

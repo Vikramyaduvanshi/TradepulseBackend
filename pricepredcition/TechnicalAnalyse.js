@@ -170,4 +170,13 @@ async function getTechnicalData(symbol = "BEL.NS") {
   }
 }
 
+
+// async function main() {
+//   let res=await getTechnicalData("RECLTD.NS")
+//   console.log(res)
+// }
+
+// main()
+
+
 module.exports = getTechnicalData;

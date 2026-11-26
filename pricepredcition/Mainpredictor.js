@@ -1,11 +1,13 @@
+const { CompanyFundamentals } = require("../Indian_Market/Routes/result")
 const Delevery = require("./Delevery")
 const getFIIDII = require("./Fii_Dii")
 const sector_mapping = require("./getStockSectorImpact")
 const getStockSectorImpact = require("./getStockSectorImpact")
 const getStockAIResult = require("./Groq_predict")
-const Newssentiment = require("./Newssentiment")
+// const Newssentiment = require("./Newssentiment")
 const getScreenerData = require("./ScreenerData")
 const getNSEData = require("./SectorIndex")
+const { newsdatastockedge } = require("./stockedge")
 const getTechnicalData = require("./TechnicalAnalyse")
 
 
@@ -19,52 +21,75 @@ const withTimeout = (p, ms, name) =>
 
 async function predictorresult(symbol, onProgress = () => { }) {
     try {
-        const total = 8;       // 7 fetch + 1 AI
+        console.log(symbol,"symbol in predictorresult ")
+        const total = 9; // 6 parallel + news + stockedge fundamentals + AI
         let done = 0;
 
-        // call turant shuru hoti hai (parallel), khatam hone par progress bhejta hai
         const track = (name, promise) =>
             withTimeout(Promise.resolve(promise), 25000, name)
                 .then((v) => {
-                    onProgress({ step: name, ok: true, done: ++done, total, data: v });   // <-- data add kiya
+                    const ok = v != null && v.success !== false;
+                    onProgress({ step: name, ok, done: ++done, total, data: v });
                     return v;
                 })
                 .catch((e) => {
                     console.log(name, "failed:", e.message);
                     onProgress({ step: name, ok: false, done: ++done, total });
-                    return null;          // ek fail hone par baaki na ruken
+                    return null;
                 });
 
-        const [deliveryData, newsData, screenerData, technicalData, fiiDiiData, NSEdata, sector_impact] =
+        const [deliveryData, screenerData, technicalData, fiiDiiData, NSEdata, sector_impact] =
             await Promise.all([
-                    track("Delivery data", Delevery(symbol)),
-                    track("News sentiment", Newssentiment(symbol)),
-                    track("Fundamentals", getScreenerData(symbol)),
-                    track("Technical data", getTechnicalData(symbol + ".NS")),
-                    track("FII/DII data", getFIIDII()),
-                    track("NSE data", getNSEData()),
-                    track("Sector impact", sector_mapping(symbol + ".NS")),
+                track("Delivery data", Delevery(symbol)),
+                track("Fundamentals", getScreenerData(symbol)),
+                track("Technical data", getTechnicalData(symbol + ".NS")),
+                track("FII/DII data", getFIIDII()),
+                track("NSE data", getNSEData()),
+                track("Sector impact", sector_mapping(symbol + ".NS")),
             ]);
+
+        // Symbol galat ho to yahin rok do
+        if (!technicalData?.success) {
+            return { success: false, error: `Technical data nahi mila for ${symbol}` };
+        }
+
+        // Yahoo ka official naam, na mile to LLM wala
+        const officialName = screenerData.company ;
+
+        const newsData = await track("News sentiment", newsdatastockedge(officialName));
+
+        const lastNews = Array.isArray(newsData) ? newsData[newsData.length - 1] : null;
+        const stockedgefundamental = lastNews
+            ? await track("StockEdge fundamentals", CompanyFundamentals(lastNews))
+            : null;
 
         onProgress({ step: "Generating AI analysis", ok: true, done: total - 1, total });
 
-        const result = await withTimeout(
-            getStockAIResult({ screenerData, technicalData, newsData, fiiDiiData, deliveryData, sector_impact }),
+        return await withTimeout(
+            getStockAIResult({
+                screenerData, technicalData, newsData, stockedgefundamental,
+                sector_impact, NSEdata, deliveryData, fiiDiiData,
+            }),
             60000,
             "AI analysis"
         );
-
-        return result;
     } catch (e) {
-        console.log(e.message);   // pehle jaisa: fail par undefined return
+        console.log("predictorresult error:", e);
+        return { success: false, error: e.message };
     }
 }
 
 
 module.exports = predictorresult
 
-// predictorresult("bel")
+// async function main() {
+//     const res = await predictorresult("AFFORDABLE", (p) => {
+//         // data bahut bada hota hai, sirf step, ok aur count dikhao
+//         console.log(`[${p.done}/${p.total}] ${p.step} -> ${p.ok ? "ok" : "FAIL"}`);
+//     });
 
+//     console.log("FINAL:", JSON.stringify(res, null, 2));
+// }
 
-
+// if (require.main === module) main();
 

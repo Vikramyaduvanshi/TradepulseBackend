@@ -140,4 +140,13 @@ async function getScreenerData(symbol = "BEL") {
   }
 }
 
+
+
+
+// async function main() {
+//   let res= await getScreenerData("RECLTD")
+//   console.log(res)
+// }
+
+// main()
 module.exports = getScreenerData;

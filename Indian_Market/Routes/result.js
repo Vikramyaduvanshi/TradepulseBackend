@@ -32,13 +32,15 @@ async function CompanyFundamentals(id) {
     
 let data= await fetch(`https://api.stockedge.com/Api/SecurityDashboardApi/GetResultStatementSet/${id}/2/3?lang=en
 `)
-let res1= await data.json()
-return res1
+let {DisplayData}= await data.json()
+
+return DisplayData.slice(0,3)
 }
 
 
 
-module.exports={GetAllResult}
+
+module.exports={GetAllResult,CompanyFundamentals}
 
 
 

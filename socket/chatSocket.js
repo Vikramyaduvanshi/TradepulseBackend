@@ -3,7 +3,7 @@ const { Usermodel } = require("../modal/modal")
 const predictorresult = require("../pricepredcition/Mainpredictor")
 const companyAgent = require("./Model_text")
 
-const TOTAL_SOURCES = 7
+const TOTAL_SOURCES = 8
 
 function preview(v, depth = 0) {
     if (v === null || v === undefined) return null
@@ -32,7 +32,6 @@ function safePreview(v) {
         return null
     }
 }
-
 function chatSocket(io, socket) {
     const { id } = socket.user
 
@@ -46,40 +45,39 @@ function chatSocket(io, socket) {
         socket.data.busy = true
 
         try {
-            // ---- Limit check (analysis se pehle) ----
-            const allowed = await checkLimit(id)
-            if (!allowed) {
-                const u = await Usermodel.findById(id).select("limit.blockedUntil")
-                const retryTime = u?.limit?.blockedUntil
-  ? new Date(u.limit.blockedUntil).toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    })
-  : "some time";
-                return send({
-                    error: true,
-                    limitReached: true,
-                    message: `limit has crosed, please try again after ${retryTime} `,
-                })
-            }
-            // ---- Yahan se purana logic same ----
-
             send("Understanding your query...")
-            let model_text = await companyAgent(userText)
+            const model_text = await companyAgent(userText)
+            const company = String(model_text || "").trim().toUpperCase()
 
-            if (!model_text || !model_text.trim()) {
+            if (!company || company === "UNKNOWN") {
                 return fail("Sorry, I couldn't identify a company from your message. Try asking like 'Tata Elxsi share price' or 'Reliance analysis'.")
             }
 
-            const company = model_text.trim()
+            // ---- Limit check (company pehchanne ke baad, analysis se pehle) ----
+            // const allowed = await checkLimit(id)
+            // if (!allowed) {
+            //     const u = await Usermodel.findById(id).select("limit.blockedUntil")
+            //     const retryTime = u?.limit?.blockedUntil
+            //         ? new Date(u.limit.blockedUntil).toLocaleString("en-IN", {
+            //             timeZone: "Asia/Kolkata",
+            //             day: "2-digit",
+            //             month: "short",
+            //             hour: "2-digit",
+            //             minute: "2-digit",
+            //             hour12: true,
+            //         })
+            //         : "some time"
+            //     return send({
+            //         error: true,
+            //         limitReached: true,
+            //         message: `Limit has crossed, please try again after ${retryTime}`,
+            //     })
+            // }
+
             send(`Analyzing ${company}...`)
 
             let usedSources = 0
-            let res = await predictorresult(company, (p) => {
+            const res = await predictorresult(company, (p) => {
                 if (p.step === "Generating AI analysis") return send("Final analysis in progress, please wait...")
                 if (p.ok) {
                     usedSources += 1
@@ -91,7 +89,7 @@ function chatSocket(io, socket) {
                 }
             })
 
-            if (!res) {
+            if (!res || res.success === false) {
                 return fail(`Sorry, I couldn't find analysis data for "${company}". Please check the company name and try again.`)
             }
 
@@ -105,5 +103,4 @@ function chatSocket(io, socket) {
         }
     })
 }
-
 module.exports = chatSocket

@@ -3,151 +3,162 @@ const cheerio = require("cheerio");
 const Parser = require("rss-parser");
 const parser = new Parser();
 
-async function getNews(symbol) {
-    const url = `https://news.google.com/rss/search?q=${symbol}+stock+india`;
+// symbol ya company name, dono chalenge (company name behtar hai)
+async function getNews(query) {
+    const q = encodeURIComponent(`${query} stock india`) + "+when:30d";
+    const url = `https://news.google.com/rss/search?q=${q}&hl=en-IN&gl=IN&ceid=IN:en`;
     const feed = await parser.parseURL(url);
-    return feed.items.map(item => ({
+    return feed.items.map((item) => ({
         title: item.title,
         link: item.link,
-        date: item.pubDate
+        date: item.pubDate,
     }));
 }
 
 const importantWords = [
-    // --- RISK & CORPORATE GOVERNANCE (CRITICAL NEGATIVE) ---
+    // RISK
     "fraud", "scam", "raid", "sebi", "penalty", "investigation", "probe", "irregularities",
     "default", "loss", "falls", "drops", "downgrade", "stake sale", "npa", "resigns", "quit",
-    "offload", "block deal", "bulk deal", "litigation", "court", "verdict", "tax notice", 
+    "offload", "block deal", "bulk deal", "litigation", "court", "verdict", "tax notice",
     "auditor", "pledged", "slippage", "provisioning", "forensic", "discrepancy", "show cause",
-    "whistleblower", "insolvency", "bankruptcy", "write-off", "cbi", "ed raid", "sfio", 
+    "whistleblower", "insolvency", "bankruptcy", "write-off", "cbi", "ed raid", "sfio",
     "violation", "curbs", "restriction", "fines", "breach", "fema",
-
-    // --- GROWTH & VALUE UNLOCKING (STRONG POSITIVE) ---
+    // GROWTH
     "order", "contract", "wins", "deal", "profit", "beats", "guidance", "expansion",
     "dividend", "bonus", "split", "upgrade", "buy rating", "acquisition", "merger", "buyback",
-    "patent", "capex", "jv", "joint venture", "outlook", "margin", "ebitda", "fundraising", 
-    "l1 bidder", "export", "demerger", "turnaround", "debt free", "debt reduction", 
+    "patent", "capex", "jv", "joint venture", "outlook", "margin", "ebitda", "fundraising",
+    "l1 bidder", "export", "demerger", "turnaround", "debt free", "debt reduction",
     "capacity addition", "order book", "market share", "pli scheme", "monetization",
     "strategic sale", "in-principle approval", "commissioned", "licence",
-
-    // --- SECTOR SPECIFIC (HIGH IMPACT) ---
-    "usfda", "form 483", "observations", "warning letter", "eir", // Pharma
-    "casa", "nim", "asset quality", "gnpa", "nnpa", "slippages",   // Banking
-    "tcv", "attrition", "digital transformation",                // IT
-    "arpu", "subscriber addition",                               // Telecom
-    "grm", "under-recovery", "windfall tax",                     // Oil & Gas
-    "lme price", "anti-dumping",                                 // Metals
-
-    // --- MACRO & REGULATORY (NEUTRAL/MARKET MOVERS) ---
-    "results", "earnings", "budget", "policy", "government", "gdp", "inflation", "rbi", 
+    // SECTOR
+    "usfda", "form 483", "warning letter",
+    "casa", "nim", "asset quality", "gnpa", "nnpa", "slippages",
+    "tcv", "attrition", "digital transformation",
+    "arpu", "subscriber addition",
+    "grm", "under-recovery", "windfall tax",
+    "lme price", "anti-dumping",
+    // MACRO
+    "results", "earnings", "budget", "policy", "gdp", "inflation", "rbi",
     "cci", "fed", "interest rate", "gst", "fdi", "fpi", "msci", "ftse", "rebalancing",
-    "upper circuit", "lower circuit", "52-week high", "multi-year high"
+    "upper circuit", "lower circuit", "52-week high", "multi-year high",
+    // ACTION
+    "upside", "target", "jump", "surge", "breakout", "growth",
 ];
 
-function shouldOpen(title) {
-    let t = title.toLowerCase();
-    const actionWords = ["upside", "target", "jump", "surge", "breakout", "growth"];
-    const hasAction = actionWords.some(word => t.includes(word));
-    const hasCritical = importantWords.some(word => t.includes(word));
-    return hasAction || hasCritical;
-}
+// Word boundary regex: "their" me "eir", "FedEx" me "fed" match nahi hoga
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const importantRe = new RegExp(`\\b(${importantWords.map(escapeRe).join("|")})\\b`, "i");
+
+const shouldOpen = (title) => importantRe.test(title || "");
 
 async function readArticle(browser, googleUrl) {
     let page;
     try {
         page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-        
-        await page.goto(googleUrl, { waitUntil: 'networkidle2', timeout: 60000 });
-        const finalUrl = page.url();
-        const html = await page.content();
-        const $ = cheerio.load(html);
+        await page.setUserAgent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        );
 
-        $('script, style, nav, footer, header, noscript, ads, .sidebar, .related').remove();
-
-        let title = $("meta[property='og:title']").attr("content") || $("h1").first().text() || $("title").text();
-        let contentArray = [];
-        $("p").each((i, el) => {
-            let text = $(el).text().trim();
-            if (text.length > 50) contentArray.push(text);
+        await page.setRequestInterception(true);
+        page.on("request", (req) => {
+            if (["image", "font", "stylesheet", "media"].includes(req.resourceType())) req.abort();
+            else req.continue();
         });
 
-        let articleContent = contentArray.join("\n\n");
-        await page.close();
+        await page.goto(googleUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
 
-        return {
-            success: true,
-            source: finalUrl,
-            title: title ? title.trim() : "No Title",
-            content: articleContent ? articleContent.slice(0, 1000) : "No Content Found",
-        };
+        // Google News link redirect hone ka wait
+        await page
+            .waitForFunction(() => !location.hostname.includes("news.google.com"), { timeout: 10000 })
+            .catch(() => {});
+
+        const finalUrl = page.url();
+        if (finalUrl.includes("news.google.com")) {
+            return { success: false, error: "redirect nahi hua" };
+        }
+
+        const html = await page.content();
+        const $ = cheerio.load(html);
+        $("script, style, nav, footer, header, noscript, aside, .sidebar, .related").remove();
+
+        const paras = [];
+        $("p").each((i, el) => {
+            const text = $(el).text().trim();
+            if (text.length > 50) paras.push(text);
+        });
+
+        const content = paras.join("\n\n").slice(0, 1000);
+        return { success: !!content, source: finalUrl, content };
     } catch (error) {
-        if (page) await page.close();
         return { success: false, error: error.message };
+    } finally {
+        if (page) await page.close().catch(() => {});
     }
 }
 
-async function Newssentiment(symbol) {
+async function Newssentiment(query) {
     let browser;
     try {
-        let news = await getNews(symbol);
+        const news = await getNews(query);
         news.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        const fresh = news.filter(item => {
-            let diff = (Date.now() - new Date(item.date)) / (1000 * 60 * 60 * 24);
-            return diff <= 30;
-        });
-
+        // Duplicate titles hatao
         const unique = [];
-        const titles = new Set();
-        for (let item of fresh) {
-            let clean = item.title.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
-            if (!titles.has(clean)) {
-                titles.add(clean);
+        const seen = new Set();
+        for (const item of news) {
+            const clean = (item.title || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+            if (clean && !seen.has(clean)) {
+                seen.add(clean);
                 unique.push(item);
             }
         }
 
-        let final = [];
-        let notopened = [];
+        const top = unique.slice(0, 8); // headlines
+        const toOpen = top.filter((i) => shouldOpen(i.title)).slice(0, 4); // articles
 
-        // Yahan limit lagayi hai (sirf top 5 articles) kyunki Puppeteer slow hota hai
-        const topUnique = unique.slice(0, 5); 
-
-        // Browser sirf ek baar launch hoga, agar koi article open karna pade tabhi
-        const needsBrowser = topUnique.some(item => shouldOpen(item.title));
-        if (needsBrowser) {
-            browser = await launchBrowser();
-        }
-
-        for (let item of topUnique) {
-            if (shouldOpen(item.title)) {
-                let res = await readArticle(browser, item.link);
+        const articles = [];
+        if (toOpen.length) {
+            browser = await launchBrowser(["--no-sandbox", "--disable-setuid-sandbox"]);
+            for (const item of toOpen) {
+                const res = await readArticle(browser, item.link);
                 if (res.success) {
-                    final.push({
-                        title: item.title,
-                        date: item.date,
-                        article: res.content,
-                    });
+                    articles.push({ title: item.title, date: item.date, article: res.content });
                 }
-            } else {
-                notopened.push({ title: item.title, date: item.date });
             }
         }
 
-        return {
-            symbol: symbol,
-            total_fresh: unique.length,
-            analyzed_count: final.length,
-            articles: final,
-        };
+        // Saari headlines bhi bhejo (article khula ya nahi)
+        const openedTitles = new Set(articles.map((a) => a.title));
+        const headlines = top.map((i) => ({
+            title: i.title,
+            date: i.date,
+            articleRead: openedTitles.has(i.title),
+        }));
 
+        return {
+            success: true,
+            query,
+            total_fresh: unique.length,
+            analyzed_count: articles.length,
+            headlines,
+            articles,
+        };
     } catch (error) {
         console.log("Newssentiment Error:", error.message);
         return { success: false, error: error.message };
     } finally {
-        if (browser) await browser.close();
+        if (browser) await browser.close().catch(() => {});
     }
 }
+
+
+
+async function main() {
+    // let res= await Newssentiment("REC LTD")
+    let res= await getNews("REC LTD")
+    // console.log(res)
+}
+
+// main()
 
 module.exports = Newssentiment;

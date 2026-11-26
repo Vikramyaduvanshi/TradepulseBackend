@@ -1,8 +1,11 @@
 {
  "dependencies": {
+  "@langchain/core": "^1.5.1",
+  "@langchain/langgraph": "^1.7.5",
+  "@langchain/openai": "^1.8.5",
   "@mozilla/readability": "^0.6.0",
   "@sparticuz/chromium": "148.0.0",
-  "axios": "^1.16.0",
+  "axios": "^1.21.1",
   "axios-cookiejar-support": "^6.0.5",
   "bcrypt": "^6.0.0",
   "cheerio": "^1.2.0",
@@ -14,6 +17,7 @@
   "crypto-js": "^4.2.0",
   "csv-parser": "^3.2.1",
   "dotenv": "^17.4.2",
+  "duck-duck-scrape": "^2.2.7",
   "express": "^5.2.1",
   "express-session": "^1.19.0",
   "follow-redirect-url": "^1.0.5",
@@ -42,7 +46,8 @@
   "technicalindicators": "^3.1.0",
   "tough-cookie": "^6.0.1",
   "unzipper": "^0.12.3",
-  "yahoo-finance2": "^3.14.0"
+  "yahoo-finance2": "^3.14.0",
+  "zod": "^4.6.7"
  },
  "devDependencies": {
   "nodemon": "^3.1.14"

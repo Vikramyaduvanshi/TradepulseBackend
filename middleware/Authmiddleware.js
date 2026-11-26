@@ -3,7 +3,7 @@ const { verifySecureToken, generateSecureToken } = require("../Token/generateTok
 
 function Authmiddleware(){
     return async (req,res,next)=>{
-        let access_token = req.cookies?.accesstoken
+        let access_token = req.cookies?.accesstoken 
         let refresh_token = req.cookies?.refreshtoken
         let payload;
 

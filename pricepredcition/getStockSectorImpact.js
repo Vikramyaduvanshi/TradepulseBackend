@@ -71,12 +71,12 @@ async function sector_mapping(ticker = "BEL.NS") {
     }
 }
 
-async function main() {
-  let res= await sector_mapping("RECLTD.NS")
-  console.log(res)
-}
+// async function main() {
+//   let res= await sector_mapping("RECLTD.NS")
+//   console.log(res)
+// }
 
-main()
+// main()
 
 
 
