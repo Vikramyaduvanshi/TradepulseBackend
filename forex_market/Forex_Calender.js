@@ -70,9 +70,9 @@ async function CalenderHandleWithUpsert() {
   try {
     const weekStr = getForexFactoryWeekString(); // Generates "sep13.2026"
     const todayDateStr = getIndiaDateTimeFormatted(); // Generates "Thu Sep 17"
-console.log(weekStr, "week str")
+
    const calendars = await getForexFactoryCalendar(weekStr);
-console.log(calendars)
+
 
     if (!calendars || calendars.length === 0) {
       console.log("No calendar events scraped.");
@@ -95,13 +95,13 @@ console.log(calendars)
 
     if (operations.length > 0) {
       await Calender.bulkWrite(operations);
-      console.log(`Successfully synced ${operations.length} events to MongoDB.`);
+      // console.log(`Successfully synced ${operations.length} events to MongoDB.`);
     }
 
     // Filter today's events
     const todayCalendar = calendars.filter(v => v.date === todayDateStr);
-console.log(todayCalendar)
-    console.log(`Today's Events (${todayDateStr}):`, todayCalendar.length);
+
+    // console.log(`Today's Events (${todayDateStr}):`, todayCalendar.length);
     return todayCalendar;
 
   } catch (error) {

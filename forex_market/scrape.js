@@ -214,7 +214,7 @@ async function scrapePage(url, options = {}) {
       { stealth, timeoutMs: timeout * 2 + 60000 }
     );
   } catch (err) {
-    console.log("scrapePage Error:", err.message);
+   
     return { success: false, url, error: err.message };
   }
 }
